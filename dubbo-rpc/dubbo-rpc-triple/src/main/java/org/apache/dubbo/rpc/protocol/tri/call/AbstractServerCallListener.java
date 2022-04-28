@@ -58,7 +58,10 @@ public abstract class AbstractServerCallListener implements ServerCall.Listener 
         }
         final long stInMillis = System.currentTimeMillis();
         try {
+            // 执行方法
             final Result response = invoker.invoke(invocation);
+
+            // 方法执行完之后，要么是void，要么是普通对象，要么是StreamObserver类型
             response.whenCompleteWithContext((r, t) -> {
                 responseObserver.setResponseAttachments(response.getObjectAttachments());
                 if (t != null) {
@@ -79,6 +82,11 @@ public abstract class AbstractServerCallListener implements ServerCall.Listener 
                     responseObserver.onCompleted(TriRpcStatus.DEADLINE_EXCEEDED);
                     return;
                 }
+
+                // onReturn是一个抽象方法，把方法执行结果传给具体的AbstractServerCallListener
+                // BiStreamServerCallListener, 客户端流，返回对象类型为StreamObserver类型
+                // ServerStreamServerCallListener, 服务端流，返回void
+                // UnaryServerCallListener, 普通调用，返回普通对象
                 onReturn(r.getValue());
             });
         } catch (Throwable t) {

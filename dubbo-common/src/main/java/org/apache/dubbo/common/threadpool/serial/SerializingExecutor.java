@@ -58,7 +58,12 @@ public final class SerializingExecutor implements Executor, Runnable {
      */
     @Override
     public void execute(Runnable r) {
+        // SerializingExecutor会对加入到runQueue中的Runnable用一个线程进行串行处理
+
+        // 将Runnable任务添加到队列
         runQueue.add(r);
+
+        // 使用内部线程池executor中的一个线程来运行
         schedule(r);
     }
 
@@ -66,6 +71,10 @@ public final class SerializingExecutor implements Executor, Runnable {
         if (atomicBoolean.compareAndSet(false, true)) {
             boolean success = false;
             try {
+                // SerializingExecutor内部保护了一个线程池executor，这个线程池是根据服务url创建出来的
+                // 注意：这里并不是把runQueue队列中的Runnable任务拿出来用线程去执行
+                // 而是把SerializingExecutor自己作为一个Runnable交给线程池中的一个线程去执行
+                // 这里其实就是利用一个线程去执行SerializingExecutor中的run方法，从而获取runQueue中的任务进行执行
                 executor.execute(this);
                 success = true;
             } finally {
@@ -104,6 +113,8 @@ public final class SerializingExecutor implements Executor, Runnable {
         } finally {
             atomicBoolean.set(false);
         }
+
+        // 如果队列中不为空，则继续获取一个线程执行run()，继续获取队列中的任务进行执行
         if (!runQueue.isEmpty()) {
             // we didn't enqueue anything but someone else did.
             schedule(null);

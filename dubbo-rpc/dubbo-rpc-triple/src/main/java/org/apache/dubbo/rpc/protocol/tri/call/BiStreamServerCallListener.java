@@ -36,6 +36,7 @@ public class BiStreamServerCallListener extends AbstractServerCallListener {
 
     @Override
     public void onReturn(Object value) {
+        // 把用户定义的StreamObserver对象赋值给requestObserver属性，注意流还没有完成，会能继续接收数据
         this.requestObserver = (StreamObserver<Object>) value;
     }
 

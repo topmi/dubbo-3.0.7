@@ -108,6 +108,7 @@ public class TripleHttp2Protocol extends Http2WireProtocol implements ScopeModel
                 protected void initChannel(Channel ch) {
                     final ChannelPipeline p = ch.pipeline();
                     p.addLast(new TripleCommandOutBoundHandler());
+                    // 核心Handler， lookupExecutor会根据服务url得到一个线程池
                     p.addLast(new TripleHttp2FrameServerHandler(frameworkModel, lookupExecutor(url),
                         filters));
                 }

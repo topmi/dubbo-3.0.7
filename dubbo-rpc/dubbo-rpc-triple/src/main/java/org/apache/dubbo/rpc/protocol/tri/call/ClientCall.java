@@ -69,6 +69,7 @@ public class ClientCall {
         if (canceled) {
             throw new IllegalStateException("Call already canceled");
         }
+
         if (!headerSent) {
             headerSent = true;
             stream.sendHeader(requestMetadata.toHeaders());
@@ -114,6 +115,7 @@ public class ClientCall {
         ClientCall.Listener responseListener) {
         this.requestMetadata = metadata;
         this.listener = responseListener;
+        // 构造
         this.stream = new ClientStream(frameworkModel, executor, connection.getChannel(),
             new ClientStreamListenerImpl(responseListener, metadata.packableMethod));
         return new ClientCallToObserverAdapter<>(this);

@@ -17,6 +17,7 @@
 
 package org.apache.dubbo.springboot.demo.consumer;
 
+import org.apache.dubbo.common.stream.StreamObserver;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.apache.dubbo.springboot.demo.DemoService;
@@ -38,8 +39,57 @@ public class ConsumerApplication {
 
     @GetMapping("/")
     public String hello(){
-        String result = demoService.sayHello("zhouyu");
-        return result;
+
+        // 服务端流
+//        demoService.sayHelloServerStream("zhouyu", new StreamObserver<String>() {
+//            @Override
+//            public void onNext(String data) {
+//                System.out.println(data);
+//            }
+//
+//            @Override
+//            public void onError(Throwable throwable) {
+//
+//            }
+//
+//            @Override
+//            public void onCompleted() {
+//                System.out.println("complete");
+//            }
+//        });
+
+        // 客户端流
+        StreamObserver<String> streamObserver = demoService.sayHelloStream(new StreamObserver<String>() {
+            @Override
+            public void onNext(String data) {
+                System.out.println("接收到响应数据："+ data);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+
+            }
+
+            @Override
+            public void onCompleted() {
+                System.out.println("接收到响应数据完毕");
+            }
+        });
+
+        // 发送数据
+        streamObserver.onNext("request zhouyu hello");
+
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        streamObserver.onNext("request zhouyu world");
+        streamObserver.onCompleted();
+
+
+        return "success";
     }
 
     public static void main(String[] args) {

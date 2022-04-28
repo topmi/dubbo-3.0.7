@@ -114,6 +114,7 @@ public class PortUnificationServer {
             .childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE)
             .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
             .childHandler(new ChannelInitializer<SocketChannel>() {
+
                 @Override
                 protected void initChannel(SocketChannel ch) throws Exception {
                     // FIXME: should we use getTimeout()?
@@ -125,6 +126,8 @@ public class PortUnificationServer {
                     if (enableSsl) {
                         p.addLast("negotiation-ssl", new SslServerTlsHandler(getUrl()));
                     }
+
+                    // 初始化SocketChannel，并在pipeline中绑定PortUnificationServerHandler
 
                     final PortUnificationServerHandler puHandler = new PortUnificationServerHandler(url, protocols);
                     p.addLast("server-idle-handler", new IdleStateHandler(0, 0, idleTimeout, MILLISECONDS));

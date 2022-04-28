@@ -46,12 +46,15 @@ public class WriteQueue {
             command.promise(promise);
         }
         queue.add(command);
+
+        // 单独线程获取queue中的数据进行发送
         scheduleFlush();
         return promise;
     }
 
     public void scheduleFlush() {
         if (scheduled.compareAndSet(false, true)) {
+            // EventLoop是一个线程池，类型为ExecutorService
             channel.eventLoop().execute(this::flush);
         }
     }
@@ -68,17 +71,23 @@ public class WriteQueue {
             while ((cmd = queue.poll()) != null) {
                 cmd.run(channel);
                 i++;
+
+                // 不停的从队列中获取数据，满128个数据就flush一次
                 if (i == DEQUE_CHUNK_SIZE) {
                     i = 0;
                     channel.flush();
                     flushedOnce = true;
                 }
             }
+
+            // 如果队列中每数据了，则直接flush
             if (i != 0 || !flushedOnce) {
                 channel.flush();
             }
         } finally {
             scheduled.set(false);
+
+            // 如果队列中又有数据了，则继续异步flush
             if (!queue.isEmpty()) {
                 scheduleFlush();
             }

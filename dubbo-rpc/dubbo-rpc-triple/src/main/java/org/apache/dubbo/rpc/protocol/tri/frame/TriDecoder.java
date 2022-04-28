@@ -53,6 +53,7 @@ public class TriDecoder implements Deframer {
             // ignored
             return;
         }
+
         accumulate.addComponent(true, data);
         deliver();
     }
@@ -135,6 +136,7 @@ public class TriDecoder implements Deframer {
         // There is no reliable way to get the uncompressed size per message when it's compressed,
         // because the uncompressed bytes are provided through an InputStream whose total size is
         // unknown until all bytes are read, and we don't know when it happens.
+        // 解压
         byte[] stream = compressedFlag ? getCompressedBody() : getUncompressedBody();
 
         listener.onRawMessage(stream);

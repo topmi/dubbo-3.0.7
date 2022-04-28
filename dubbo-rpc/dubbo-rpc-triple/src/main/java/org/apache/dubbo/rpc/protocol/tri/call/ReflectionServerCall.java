@@ -134,6 +134,8 @@ public class ReflectionServerCall extends ServerCall {
 
         void startCall(Map<String, Object> metadata) {
             this.metadata = metadata;
+            // 设置对应的Listener：UnaryServerCallListener、ServerStreamServerCallListener、BiStreamServerCallListener
+            // Listener中包含了invocation, invoker, responseObserver，都是用来执行服务方法的
             trySetListener();
             if (listener == null) {
                 // wrap request , need one message
@@ -143,6 +145,7 @@ public class ReflectionServerCall extends ServerCall {
 
         @Override
         public void complete() {
+            // 一旦数据接收完毕，就会调用listener去执行服务
             if (listener != null) {
                 listener.onComplete();
             }

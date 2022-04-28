@@ -72,6 +72,7 @@ public class PortUnificationServerHandler extends ByteToMessageDecoder {
             return;
         }
 
+        // 检查数据是否符合HTTP2协议格式
         for (final WireProtocol protocol : protocols) {
             in.markReaderIndex();
             final ProtocolDetector.Result result = protocol.detector().detect(ctx, in);
@@ -80,6 +81,7 @@ public class PortUnificationServerHandler extends ByteToMessageDecoder {
                 case UNRECOGNIZED:
                     continue;
                 case RECOGNIZED:
+                    // 如果符合，则继续向pipeline绑定其他的一些Handler
                     protocol.configServerPipeline(url, ctx.pipeline(), sslCtx);
                     ctx.pipeline().remove(this);
                 case NEED_MORE_DATA:

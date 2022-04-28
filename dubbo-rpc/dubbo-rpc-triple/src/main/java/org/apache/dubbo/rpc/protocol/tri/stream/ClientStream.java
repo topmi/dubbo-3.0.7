@@ -78,11 +78,14 @@ public class ClientStream extends AbstractStream implements Stream {
     }
 
     private WriteQueue createWriteQueue(Channel parent) {
+        // 利用Netty开启一个Http2StreamChannel，也就是HTTP2中的流
         final Http2StreamChannelBootstrap bootstrap = new Http2StreamChannelBootstrap(parent);
         final Future<Http2StreamChannel> future = bootstrap.open().syncUninterruptibly();
         if (!future.isSuccess()) {
             throw new IllegalStateException("Create remote stream failed. channel:" + parent);
         }
+
+        // 并绑定两个Handler，一个工作在发送数据时，一个工作在接收数据时
         final Http2StreamChannel channel = future.getNow();
         channel.pipeline()
             .addLast(new TripleCommandOutBoundHandler())
@@ -122,6 +125,7 @@ public class ClientStream extends AbstractStream implements Stream {
     @Override
     public void writeMessage(byte[] message, int compressed) {
         try {
+            // 表示HTTP2中的Http2DataFrame
             final DataQueueCommand cmd = DataQueueCommand.createGrpcCommand(message, false,
                 compressed);
             this.writeQueue.enqueue(cmd);
@@ -225,16 +229,21 @@ public class ClientStream extends AbstractStream implements Stream {
                     }
                 }
             }
+
+            // 接收到响应数据后
             TriDecoder.Listener listener = new TriDecoder.Listener() {
                 @Override
                 public void onRawMessage(byte[] data) {
                     ClientStream.this.listener.onMessage(data);
                 }
 
+                // 响应流发送完毕
                 public void close() {
                     finishProcess(statusFromTrailers(trailers), trailers);
                 }
             };
+
+            // 接收到响应头后，就构造出解压器，后面收到响应数据时要解压
             deframer = new TriDecoder(decompressor, listener);
             ClientStream.this.listener.onStart();
         }

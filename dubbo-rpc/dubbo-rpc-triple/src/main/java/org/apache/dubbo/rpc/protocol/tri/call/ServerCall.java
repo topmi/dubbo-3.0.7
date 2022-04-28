@@ -181,7 +181,21 @@ public abstract class ServerCall {
     }
 
     public void writeMessage(Object message) {
+        // 把要发送给客户端的message，封装成一个Runnable，并交给SerializingExecutor进行处理
         final Runnable writeMessage = () -> doWriteMessage(message);
+
+        // 将Runnable添加到队列中，此处的executor为SerializingExecutor(SerializingExecutor(ThreadPoolExecutor))
+        // 内部的SerializingExecutor(ThreadPoolExecutor)就是用来接收请求数据的
+
+        // 内部SerializingExecutor负责接收数据，数据会放入队列，并由一个线程处理该数据，线程在处理数据时，如果发现数据流已经结束了
+        // 则会执行服务方法，只要服务方法里通过onNext()方法想要响应数据，那么则会执行到此方法
+        // 此方法会把要响应的数据生成lambda表达式，并添加到外部SerializingExecutor中
+        // 外部SerializingExecutor只会把自己作为一个Runnable交给内部SerializingExecutor进行处理
+        // 所以只有等内部SerializingExecutor处理下一个任务时，才会把外部SerializingExecutor拿出来执行其run方法
+        // 从而才会把执行doWriteMessage()真正去发送数据
+        // 通过这种模型达到的效果就是，尽管在服务方法中会通过onNext()响应数据，但是只能等整个方法包括filter的流程都执行完后，才会返回响应数据
+        // 所以整个模型是：接收完所有数据后--->执行服务--->执行完服务后才会真正返回响应数据
+        // 如果想要达到实时给客户端响应数据，可以在服务方法内部单开线程异步调用onNext()
         executor.execute(writeMessage);
     }
 
@@ -189,9 +203,12 @@ public abstract class ServerCall {
         if (closed) {
             return;
         }
+
+        // 先发送响应头
         if (!headerSent) {
             sendHeader();
         }
+
         final byte[] data;
         try {
             data = packableMethod.packResponse(message);
@@ -204,6 +221,8 @@ public abstract class ServerCall {
             close(TriRpcStatus.INTERNAL.withDescription("Missing response"), null);
             return;
         }
+
+        // 发送数据
         if (compressor != null) {
             int compressedFlag =
                 Identity.MESSAGE_ENCODING.equals(compressor.getMessageEncoding()) ? 0 : 1;
@@ -305,6 +324,7 @@ public abstract class ServerCall {
         MethodDescriptor methodDescriptor,
         Invoker<?> invoker) {
         CancellationContext cancellationContext = RpcContext.getCancellationContext();
+
         ServerCallToObserverAdapter<Object> responseObserver =
             new ServerCallToObserverAdapter<>(this, cancellationContext);
         try {

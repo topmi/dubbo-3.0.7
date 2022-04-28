@@ -346,6 +346,9 @@ public class ServerStream extends AbstractStream {
                 call = new StubServerCall(invoker, ServerStream.this, frameworkModel,
                     acceptEncoding, serviceName, originalMethodName, executor);
             } else {
+                // 注意，传入进来的executor是SerializingExecutor，但是在构造方法里会再包一层SerializingExecutor
+                // 所以call里的executor为  SerializingExecutor(SerializingExecutor(ThreadPoolExecutor))
+                // 当使用这个call
                 call = new ReflectionServerCall(invoker, ServerStream.this, frameworkModel,
                     acceptEncoding, serviceName, originalMethodName, filters, executor);
             }

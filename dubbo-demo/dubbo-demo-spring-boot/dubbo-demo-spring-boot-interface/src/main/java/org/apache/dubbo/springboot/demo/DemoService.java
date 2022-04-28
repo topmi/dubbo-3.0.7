@@ -16,6 +16,8 @@
  */
 package org.apache.dubbo.springboot.demo;
 
+import org.apache.dubbo.common.stream.StreamObserver;
+
 import java.util.concurrent.CompletableFuture;
 
 public interface DemoService {
@@ -25,5 +27,13 @@ public interface DemoService {
     default CompletableFuture<String> sayHelloAsync(String name) {
         return CompletableFuture.completedFuture(sayHello(name));
     }
+
+    default void sayHelloServerStream(String name, StreamObserver<String> response) {
+    }
+
+    default StreamObserver<String> sayHelloStream(StreamObserver<String> response) {
+        return response;
+    }
+
 
 }

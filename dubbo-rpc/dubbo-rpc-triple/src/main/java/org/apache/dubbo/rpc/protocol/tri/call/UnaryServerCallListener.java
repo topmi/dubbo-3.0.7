@@ -31,6 +31,7 @@ public class UnaryServerCallListener extends AbstractServerCallListener {
 
     @Override
     public void onReturn(Object value) {
+        // 把普通对象写回给客户端，并完成响应流
         responseObserver.onNext(value);
         responseObserver.onCompleted(TriRpcStatus.OK);
     }
