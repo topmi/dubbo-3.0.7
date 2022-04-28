@@ -24,24 +24,25 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication
 @Service
 @EnableDubbo
+@RestController
 public class ConsumerApplication {
 
     @DubboReference
     private DemoService demoService;
 
-    public static void main(String[] args) {
-
-        ConfigurableApplicationContext context = SpringApplication.run(ConsumerApplication.class, args);
-        ConsumerApplication application = context.getBean(ConsumerApplication.class);
-        String result = application.doSayHello("world");
-        System.out.println("result: " + result);
+    @GetMapping("/")
+    public String hello(){
+        String result = demoService.sayHello("zhouyu");
+        return result;
     }
 
-    public String doSayHello(String name) {
-        return demoService.sayHello(name);
+    public static void main(String[] args) {
+        SpringApplication.run(ConsumerApplication.class, args);
     }
 }
