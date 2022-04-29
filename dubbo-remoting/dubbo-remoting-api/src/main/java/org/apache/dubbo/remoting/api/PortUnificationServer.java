@@ -119,6 +119,7 @@ public class PortUnificationServer {
                 protected void initChannel(SocketChannel ch) throws Exception {
                     // FIXME: should we use getTimeout()?
                     int idleTimeout = UrlUtils.getIdleTimeout(getUrl());
+                    // ch是Socket连接
                     final ChannelPipeline p = ch.pipeline();
 //                        p.addLast(new LoggingHandler(LogLevel.DEBUG));
 
@@ -128,7 +129,6 @@ public class PortUnificationServer {
                     }
 
                     // 初始化SocketChannel，并在pipeline中绑定PortUnificationServerHandler
-
                     final PortUnificationServerHandler puHandler = new PortUnificationServerHandler(url, protocols);
                     p.addLast("server-idle-handler", new IdleStateHandler(0, 0, idleTimeout, MILLISECONDS));
                     p.addLast("negotiation-protocol", puHandler);

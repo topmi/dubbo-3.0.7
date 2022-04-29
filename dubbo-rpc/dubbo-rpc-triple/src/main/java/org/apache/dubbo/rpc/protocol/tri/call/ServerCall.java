@@ -325,6 +325,7 @@ public abstract class ServerCall {
         Invoker<?> invoker) {
         CancellationContext cancellationContext = RpcContext.getCancellationContext();
 
+        // 把ServerCall适配成为一个StreamObserver，传给业务方法使用
         ServerCallToObserverAdapter<Object> responseObserver =
             new ServerCallToObserverAdapter<>(this, cancellationContext);
         try {
@@ -332,17 +333,19 @@ public abstract class ServerCall {
             switch (methodDescriptor.getRpcType()) {
                 case UNARY:
                     listener = new UnaryServerCallListener(invocation, invoker, responseObserver);
+                    // 可以再接收两个数据
+                    // 一个是方法参数、一个EndStream数据
                     requestN(2);
                     break;
                 case SERVER_STREAM:
-                    listener = new ServerStreamServerCallListener(invocation, invoker,
-                        responseObserver);
+                    listener = new ServerStreamServerCallListener(invocation, invoker, responseObserver);
+                    // 可以再接收两个数据、一个EndStream数据
                     requestN(2);
                     break;
                 case BI_STREAM:
                 case CLIENT_STREAM:
-                    listener = new BiStreamServerCallListener(invocation, invoker,
-                        responseObserver);
+                    listener = new BiStreamServerCallListener(invocation, invoker, responseObserver);
+                    // 可以再接收一个数据，就方法参数
                     requestN(1);
                     break;
                 default:

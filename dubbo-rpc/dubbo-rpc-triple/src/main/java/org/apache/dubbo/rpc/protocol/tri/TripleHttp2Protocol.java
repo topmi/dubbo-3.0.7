@@ -89,6 +89,8 @@ public class TripleHttp2Protocol extends Http2WireProtocol implements ScopeModel
             .getExtensionLoader(HeaderFilter.class)
             .getActivateExtension(url, HEADER_FILTER_KEY);
         final Configuration config = ConfigurationUtils.getGlobalConfiguration(applicationModel);
+
+        // 配置HTTP2，比如max-concurrent-streams、max-frame-size
         final Http2FrameCodec codec = Http2FrameCodecBuilder.forServer()
             .gracefulShutdownTimeoutMillis(10000)
             .initialSettings(new Http2Settings().headerTableSize(
@@ -102,17 +104,31 @@ public class TripleHttp2Protocol extends Http2WireProtocol implements ScopeModel
                     DEFAULT_MAX_HEADER_LIST_SIZE)))
             .frameLogger(SERVER_LOGGER)
             .build();
+
+
+        // Http2MultiplexHandler是用来创建子Channel的，并且ChannelInitializer是用来初始化子Channel
+        // 一个Socket连接对应一个NioSocketChannel，下层可以设置多个子Channel，每个子Channel对应一个HTTP2Stream
         final Http2MultiplexHandler handler = new Http2MultiplexHandler(
+
+            // Channel初始化器，用来初始化传入进来的Channel，比如HTTP2Stream所对应的Channel
             new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel ch) {
                     final ChannelPipeline p = ch.pipeline();
+                    // 将QueuedCommand转换成Http2StreamFrame，然后再发出去
                     p.addLast(new TripleCommandOutBoundHandler());
-                    // 核心Handler， lookupExecutor会根据服务url得到一个线程池
+
+                    // TripleHttp2FrameServerHandler处理的是HTTP2Stream所对应的子Channel
+                    // 核心Handler， 用来处理Http2HeadersFrame、Http2DataFrame， lookupExecutor会根据服务url得到一个线程池
+                    // 每个子Channel对应一个线程池？还是共享一个线程池？默认是共享一个
                     p.addLast(new TripleHttp2FrameServerHandler(frameworkModel, lookupExecutor(url),
                         filters));
                 }
             });
+
+        // TripleServerConnectionHandler用来处理Http2PingFrame、Http2GoAwayFrame
+        // handler中的TripleHttp2FrameServerHandler用来处理Http2HeadersFrame、Http2DataFrame
+        // TripleTailHandler释放ByteBuf的内存空间
         pipeline.addLast(codec, new TripleServerConnectionHandler(), handler,
             new TripleTailHandler());
     }

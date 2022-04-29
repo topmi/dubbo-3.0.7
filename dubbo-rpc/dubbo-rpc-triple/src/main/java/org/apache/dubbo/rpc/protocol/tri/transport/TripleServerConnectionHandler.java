@@ -50,6 +50,7 @@ public class TripleServerConnectionHandler extends Http2ChannelDuplexHandler {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        // 这里ctx.channel() 是 NioSocketChannel
         if (msg instanceof Http2PingFrame) {
             if (((Http2PingFrame) msg).content() == GRACEFUL_SHUTDOWN_PING) {
                 if (gracefulShutdown == null) {
@@ -60,6 +61,7 @@ public class TripleServerConnectionHandler extends Http2ChannelDuplexHandler {
                 }
             }
         } else if (msg instanceof Http2GoAwayFrame) {
+            // 释放ByteBuf所占用的内存
             ReferenceCountUtil.release(msg);
         } else {
             super.channelRead(ctx, msg);

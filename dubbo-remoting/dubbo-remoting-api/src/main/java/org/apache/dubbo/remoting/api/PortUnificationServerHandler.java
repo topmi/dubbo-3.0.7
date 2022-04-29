@@ -67,12 +67,15 @@ public class PortUnificationServerHandler extends ByteToMessageDecoder {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+       // ctx.channel() 拿到的是NioSocketChannel 接收到数据ByteBuf后，会先解码，然后再触发Handler的channelRead
+
+        // 根据前5个字节确定对应的协议
         // Will use the first five bytes to detect a protocol.
         if (in.readableBytes() < 5) {
             return;
         }
 
-        // 检查数据是否符合HTTP2协议格式
+        // 看是不是HTTP2.0
         for (final WireProtocol protocol : protocols) {
             in.markReaderIndex();
             final ProtocolDetector.Result result = protocol.detector().detect(ctx, in);
@@ -81,7 +84,7 @@ public class PortUnificationServerHandler extends ByteToMessageDecoder {
                 case UNRECOGNIZED:
                     continue;
                 case RECOGNIZED:
-                    // 如果符合，则继续向pipeline绑定其他的一些Handler
+                    // 符合个某个协议后，再給Socket连接对应的pipeline绑定Handler
                     protocol.configServerPipeline(url, ctx.pipeline(), sslCtx);
                     ctx.pipeline().remove(this);
                 case NEED_MORE_DATA:

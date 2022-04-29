@@ -31,13 +31,15 @@ public class UnaryServerCallListener extends AbstractServerCallListener {
 
     @Override
     public void onReturn(Object value) {
-        // 把普通对象写回给客户端，并完成响应流
+        // 方法执行完后，把方法结果写回给客户端
         responseObserver.onNext(value);
+        // 完成响应流
         responseObserver.onCompleted(TriRpcStatus.OK);
     }
 
     @Override
     public void onMessage(Object message) {
+        // 把接收到的数据作为方法参数
         if (message instanceof Object[]) {
             invocation.setArguments((Object[]) message);
         } else {
@@ -53,6 +55,7 @@ public class UnaryServerCallListener extends AbstractServerCallListener {
 
     @Override
     public void onComplete() {
+        // 数据接收完毕后，执行服务Invoker，从而执行业务方法
         invoke();
     }
 

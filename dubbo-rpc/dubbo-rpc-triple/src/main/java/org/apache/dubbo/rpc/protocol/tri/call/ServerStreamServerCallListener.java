@@ -31,6 +31,7 @@ public class ServerStreamServerCallListener extends AbstractServerCallListener {
 
     @Override
     public void onReturn(Object value) {
+        // 服务端流没有方法返回值
     }
 
     @Override
@@ -38,6 +39,8 @@ public class ServerStreamServerCallListener extends AbstractServerCallListener {
         if (message instanceof Object[]) {
             message = ((Object[]) message)[0];
         }
+        // 会把接收到的数据和ServerCallToObserverAdapter作为方法调用的参数
+        // ServerCallToObserverAdapter可以用来可以客户端发送数据
         invocation.setArguments(new Object[]{message, responseObserver});
     }
 
@@ -50,6 +53,7 @@ public class ServerStreamServerCallListener extends AbstractServerCallListener {
 
     @Override
     public void onComplete() {
+        // 数据接收完毕后，执行服务Invoker，执行业务方法
         invoke();
     }
 }

@@ -41,28 +41,10 @@ public class ConsumerApplication {
     public String hello(){
 
         // 服务端流
-//        demoService.sayHelloServerStream("zhouyu", new StreamObserver<String>() {
-//            @Override
-//            public void onNext(String data) {
-//                System.out.println(data);
-//            }
-//
-//            @Override
-//            public void onError(Throwable throwable) {
-//
-//            }
-//
-//            @Override
-//            public void onCompleted() {
-//                System.out.println("complete");
-//            }
-//        });
-
-        // 客户端流
-        StreamObserver<String> streamObserver = demoService.sayHelloStream(new StreamObserver<String>() {
+        demoService.sayHelloServerStream("zhouyu", new StreamObserver<String>() {
             @Override
             public void onNext(String data) {
-                System.out.println("接收到响应数据："+ data);
+                System.out.println(data);
             }
 
             @Override
@@ -72,21 +54,39 @@ public class ConsumerApplication {
 
             @Override
             public void onCompleted() {
-                System.out.println("接收到响应数据完毕");
+                System.out.println("complete");
             }
         });
 
-        // 发送数据
-        streamObserver.onNext("request zhouyu hello");
-
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        streamObserver.onNext("request zhouyu world");
-        streamObserver.onCompleted();
+        // 客户端流
+//        StreamObserver<String> streamObserver = demoService.sayHelloStream(new StreamObserver<String>() {
+//            @Override
+//            public void onNext(String data) {
+//                System.out.println("接收到响应数据："+ data);
+//            }
+//
+//            @Override
+//            public void onError(Throwable throwable) {
+//
+//            }
+//
+//            @Override
+//            public void onCompleted() {
+//                System.out.println("接收到响应数据完毕");
+//            }
+//        });
+//
+//        // 发送数据
+//        streamObserver.onNext("request zhouyu hello");
+//
+//        try {
+//            Thread.sleep(10000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//
+//        streamObserver.onNext("request zhouyu world");
+//        streamObserver.onCompleted();
 
 
         return "success";

@@ -308,6 +308,7 @@ public class ServerStream extends AbstractStream {
             String serviceName = parts[1];
             String originalMethodName = parts[2];
 
+            // 请求头中设置了version、group，得到对应服务Invoker
             Invoker<?> invoker = getInvoker(headers, serviceName);
             if (invoker == null) {
                 responseErr(
@@ -315,6 +316,7 @@ public class ServerStream extends AbstractStream {
                 return;
             }
 
+            // 得到数据解压器
             DeCompressor deCompressor = DeCompressor.NONE;
             CharSequence messageEncoding = headers.get(TripleHeaderEnum.GRPC_ENCODING.getHeader());
             if (null != messageEncoding) {
@@ -333,6 +335,7 @@ public class ServerStream extends AbstractStream {
             }
 
             try {
+                // 会解压数据，并把解压后的数据交给ServerDecoderListener进行处理
                 final TriDecoder.Listener listener = new ServerDecoderListener();
                 ServerStream.this.deframer = new TriDecoder(deCompressor, listener);
             } catch (Throwable t) {
@@ -352,11 +355,15 @@ public class ServerStream extends AbstractStream {
                 call = new ReflectionServerCall(invoker, ServerStream.this, frameworkModel,
                     acceptEncoding, serviceName, originalMethodName, filters, executor);
             }
+
+            // ServerStreamListenerImpl
             ServerStream.this.listener = call.startCall(headersToMap(headers));
             if (listener == null) {
                 deframer.close();
             }
+
             if (endStream) {
+                // 数据接收完毕后，则会调用ServerStream.this.listener的close方法
                 deframer.close();
             }
         }
@@ -381,11 +388,13 @@ public class ServerStream extends AbstractStream {
 
         private class ServerDecoderListener implements TriDecoder.Listener {
 
+            // 处理解压之后的字节数据
             @Override
             public void onRawMessage(byte[] data) {
                 ServerStream.this.listener.onMessage(data);
             }
 
+            // 数据接收完毕后
             @Override
             public void close() {
                 if (ServerStream.this.listener != null) {

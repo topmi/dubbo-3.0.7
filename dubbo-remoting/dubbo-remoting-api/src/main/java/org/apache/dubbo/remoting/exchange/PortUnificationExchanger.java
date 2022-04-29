@@ -31,8 +31,10 @@ public class PortUnificationExchanger {
     private static final ConcurrentMap<String, PortUnificationServer> servers = new ConcurrentHashMap<>();
 
     public static void bind(URL url) {
+        // servers表示可以同时运行多个PortUnificationServer，只需要绑定的host+port不一样即可
         servers.computeIfAbsent(url.getAddress(), addr -> {
             final PortUnificationServer server = new PortUnificationServer(url);
+            // 运行NettyServer，并绑定ip和port
             server.bind();
             return server;
         });

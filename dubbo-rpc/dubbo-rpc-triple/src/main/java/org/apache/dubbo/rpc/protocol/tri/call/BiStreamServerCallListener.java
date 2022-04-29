@@ -30,22 +30,30 @@ public class BiStreamServerCallListener extends AbstractServerCallListener {
     public BiStreamServerCallListener(RpcInvocation invocation, Invoker<?> invoker,
                                       ServerCallToObserverAdapter<Object> responseObserver) {
         super(invocation, invoker, responseObserver);
+
+        // 构造监听器的时候，把服务端流对象设置为业务方法参数
         invocation.setArguments(new Object[]{responseObserver});
+        // 执行业务方法-->onReturn
         invoke();
     }
 
     @Override
     public void onReturn(Object value) {
-        // 把用户定义的StreamObserver对象赋值给requestObserver属性，注意流还没有完成，会能继续接收数据
+        // 业务方法一旦执行完就会返回一个StreamObserver对象
         this.requestObserver = (StreamObserver<Object>) value;
     }
 
     @Override
     public void onMessage(Object message) {
+
+        // 接收到数据时，调用requestObserver，客户端流
         if (message instanceof Object[]) {
             message = ((Object[]) message)[0];
         }
         requestObserver.onNext(message);
+
+
+        // 接收到一个请求数据，则表示可以多响应一个请求
         if (responseObserver.isAutoRequestN()) {
             responseObserver.request(1);
         }
@@ -62,6 +70,7 @@ public class BiStreamServerCallListener extends AbstractServerCallListener {
 
     @Override
     public void onComplete() {
+        // 数据接收完毕，客户端流完毕
         requestObserver.onCompleted();
     }
 }

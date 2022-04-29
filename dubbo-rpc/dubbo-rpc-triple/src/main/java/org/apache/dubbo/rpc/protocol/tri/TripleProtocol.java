@@ -92,6 +92,8 @@ public class TripleProtocol extends AbstractProtocol {
         URL url = invoker.getUrl();
         checkProtobufVersion(url);
         String key = serviceKey(url);
+
+        // 服务导出器，用来卸载服务时做一些善后处理
         final AbstractExporter<T> exporter = new AbstractExporter<T>(invoker) {
             @Override
             public void afterUnExport() {
@@ -120,6 +122,7 @@ public class TripleProtocol extends AbstractProtocol {
         triBuiltinService.getHealthStatusManager()
             .setStatus(url.getServiceInterface(), HealthCheckResponse.ServingStatus.SERVING);
 
+        // 启动服务器，用来处理HTTP2的请求
         PortUnificationExchanger.bind(invoker.getUrl());
         return exporter;
     }
@@ -173,6 +176,7 @@ public class TripleProtocol extends AbstractProtocol {
             return;
         }
 
+        // 检查protobuf-java的版本
         TripleWrapper.TripleResponseWrapper responseWrapper = TripleWrapper.TripleResponseWrapper.newBuilder()
             .setData(ByteString.copyFromUtf8("Test"))
             .setSerializeType("Test")

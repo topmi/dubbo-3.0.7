@@ -47,6 +47,7 @@ public class TriDecoder implements Deframer {
         this.listener = listener;
     }
 
+    // 把接收到的ByteBuf数据转发给Listener
     @Override
     public void deframe(ByteBuf data) {
         if (closing || closed) {
@@ -54,6 +55,7 @@ public class TriDecoder implements Deframer {
             return;
         }
 
+        // 累加器 把ByteBuf合并起来
         accumulate.addComponent(true, data);
         deliver();
     }
@@ -81,6 +83,7 @@ public class TriDecoder implements Deframer {
             while (pendingDeliveries > 0 && hasEnoughBytes()) {
                 switch (state) {
                     case HEADER:
+                        // 获取
                         processHeader();
                         break;
                     case PAYLOAD:
@@ -109,6 +112,7 @@ public class TriDecoder implements Deframer {
     }
 
     private boolean hasEnoughBytes() {
+        // 需要的字节长度-可读的字节长度 <=0，则表示满足需要了
         return requiredLength - accumulate.readableBytes() <= 0;
     }
 
@@ -136,7 +140,7 @@ public class TriDecoder implements Deframer {
         // There is no reliable way to get the uncompressed size per message when it's compressed,
         // because the uncompressed bytes are provided through an InputStream whose total size is
         // unknown until all bytes are read, and we don't know when it happens.
-        // 解压
+        // 如果数据被压缩了，那就解压数据
         byte[] stream = compressedFlag ? getCompressedBody() : getUncompressedBody();
 
         listener.onRawMessage(stream);
