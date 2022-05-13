@@ -70,17 +70,24 @@ public class ClientCall {
             throw new IllegalStateException("Call already canceled");
         }
 
+        // 发送请求头
         if (!headerSent) {
             headerSent = true;
             stream.sendHeader(requestMetadata.toHeaders());
         }
+
         final byte[] data;
         try {
+            // 把要发送的message进行序列化，得到字节
             data = requestMetadata.packableMethod.packRequest(message);
+
+            // 压缩数据
             int compressed =
                 Identity.MESSAGE_ENCODING.equals(requestMetadata.compressor.getMessageEncoding())
                     ? 0 : 1;
             final byte[] compress = requestMetadata.compressor.compress(data);
+
+            // 发送数据
             stream.writeMessage(compress, compressed);
         } catch (Throwable t) {
             LOGGER.error(String.format("Serialize triple request failed, service=%s method=%s",

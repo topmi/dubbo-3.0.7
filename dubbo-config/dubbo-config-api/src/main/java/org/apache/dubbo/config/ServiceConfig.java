@@ -364,7 +364,9 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
+        // 服务提供者在本地存储所导出的服务信息
         ModuleServiceRepository repository = getScopeModel().getServiceRepository();
+
         ServiceDescriptor serviceDescriptor;
         final boolean serverService = ref instanceof ServerService;
         if(serverService){
@@ -373,6 +375,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         }else{
             serviceDescriptor = repository.registerService(getInterfaceClass());
         }
+
         providerModel = new ProviderModel(getUniqueServiceName(),
             ref,
             serviceDescriptor,
@@ -382,8 +385,10 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
         repository.registerProvider(providerModel);
 
+        // 一个服务支持注册到多个注册中心，这里拿到注册中心对应的URL
         List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
+        // 一个服务如果支持多个协议，则按单个协议进行服务导出
         for (ProtocolConfig protocolConfig : protocols) {
             String pathKey = URL.buildKey(getContextPath(protocolConfig)
                     .map(p -> p + "/" + path)
@@ -393,6 +398,8 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 // In case user specified path, register service one more time to map it to path.
                 repository.registerService(pathKey, interfaceClass);
             }
+
+            // 真正进行导出
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
     }
@@ -576,6 +583,8 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             // export to remote if the config is not local (export to local only when config is local)
             if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) {
                 url = exportRemote(url, registryURLs);
+
+                // 服务注册完了之后，会存服务元数据
                 if (!isGeneric(generic) && !getScopeModel().isInternal()) {
                     MetadataUtils.publishServiceDefinition(url, providerModel.getServiceModel(), getApplicationModel());
                 }
@@ -638,6 +647,8 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         if (withMetaData) {
             invoker = new DelegateProviderMetaDataInvoker(invoker, this);
         }
+
+        // spi中定义了service-discovery-registry=org.apache.dubbo.registry.integration.RegistryProtocol
         Exporter<?> exporter = protocolSPI.export(invoker);
         exporters.add(exporter);
     }

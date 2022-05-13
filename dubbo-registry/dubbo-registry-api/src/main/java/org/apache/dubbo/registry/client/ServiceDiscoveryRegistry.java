@@ -187,7 +187,7 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
     @Override
     public void doSubscribe(URL url, NotifyListener listener) {
         url = addRegistryClusterKey(url);
-
+        // ZookeeperServiceDiscovery，表示具体的注册中心实现，里面有Zookeeper的客户端
         serviceDiscovery.subscribe(url, listener);
 
         boolean check = url.getParameter(CHECK_KEY, false);
@@ -199,6 +199,7 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
             Set<String> subscribedServices = serviceNameMapping.getCachedMapping(url);
             try {
                 MappingListener mappingListener = new DefaultMappingListener(url, subscribedServices, listener);
+                // 获取接口所对应的应用名，如果一个应用有两个实例，那么这里也只会得到一个应用名
                 subscribedServices = serviceNameMapping.getAndListen(this.getUrl(), url, mappingListener);
                 mappingListeners.put(url.getProtocolServiceKey(), mappingListener);
             } catch (Exception e) {
@@ -307,8 +308,10 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
                 serviceInstancesChangedListener = serviceDiscovery.createListener(serviceNames);
                 serviceInstancesChangedListener.setUrl(url);
                 for (String serviceName : serviceNames) {
+                    // 根据应用名，从/dubbo/services/应用名 节点下查出应用实例数据，比如两个实例
                     List<ServiceInstance> serviceInstances = serviceDiscovery.getInstances(serviceName);
                     if (CollectionUtils.isNotEmpty(serviceInstances)) {
+                        // 根据找到的应用实例信息，serviceName是应用名，serviceInstances是应用实例
                         serviceInstancesChangedListener.onEvent(new ServiceInstancesChangedEvent(serviceName, serviceInstances));
                     }
                 }

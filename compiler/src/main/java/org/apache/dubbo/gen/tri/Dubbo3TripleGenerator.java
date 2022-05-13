@@ -30,6 +30,7 @@ public class Dubbo3TripleGenerator extends AbstractGenerator {
         }
     }
 
+
     @Override
     protected String getClassPrefix() {
         return "Dubbo";

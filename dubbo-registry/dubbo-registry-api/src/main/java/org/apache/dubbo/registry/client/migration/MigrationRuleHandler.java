@@ -66,6 +66,8 @@ public class MigrationRuleHandler<T> {
         }
         MigrationStep originStep = currentStep;
 
+        // 如果step发生了改变，或者step没有变化但是threshold发生了变化，则判断到底使用什么级别的服务提供者（接口还是应用）
+        // 比如step本来是APPLICATION_FIRST，现在改为了FORCE_APPLICATION，就表示当前消费者应用在使用当前服务时，只使用应用级地址了，那就需要销毁之前的接口级Invoker，从而释放一些所占用的资源
         if ((currentStep == null || currentStep != step) || !currentThreshold.equals(threshold)) {
             boolean success = true;
             switch (step) {

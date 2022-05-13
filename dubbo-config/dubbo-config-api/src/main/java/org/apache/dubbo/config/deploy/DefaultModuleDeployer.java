@@ -252,6 +252,7 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
             if (isStarting()) {
                 setStarted();
                 logger.info(getIdentifier() + " has started.");
+                // 启动完成，将触发应用注册
                 applicationDeployer.notifyModuleChanged(moduleModel, DeployState.STARTED);
             }
         } finally {

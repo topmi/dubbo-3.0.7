@@ -19,6 +19,7 @@ package org.apache.dubbo.springboot.demo.provider;
 
 import org.apache.dubbo.common.stream.StreamObserver;
 import org.apache.dubbo.config.annotation.DubboService;
+import org.apache.dubbo.config.annotation.Method;
 import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.springboot.demo.DemoService;
 
@@ -27,43 +28,38 @@ import java.util.concurrent.CompletableFuture;
 @DubboService
 public class DemoServiceImpl implements DemoService {
 
+    // UNARY
     @Override
     public String sayHello(String name) {
-        System.out.println("Hello " + name + ", request from consumer: " + RpcContext.getContext().getRemoteAddress());
-        return "Hello " + name;
+        return "Hello " + name + RpcContext.getServerContext().getLocalPort();
     }
 
-    // 客户端流（或者双向流）
-    @Override
-    public StreamObserver<String> sayHelloStream(StreamObserver<String> response) {
-        return new StreamObserver<String>() {
-            @Override
-            public void onNext(String data) {
-                System.out.println("服务端接收到数据：" + data);
-
-                // 响应数据
-                response.onNext("result：" + data);
-
-                System.out.println("xxx");
-            }
-
-            @Override
-            public void onError(Throwable throwable) {
-
-            }
-
-            @Override
-            public void onCompleted() {
-                System.out.println("服务端接收数据完毕");
-            }
-        };
-    }
-
-    // 服务端流
+    // SERVER_STREAM
     @Override
     public void sayHelloServerStream(String name, StreamObserver<String> response) {
         response.onNext(name + " hello");
         response.onNext(name + " world");
         response.onCompleted();
     }
+
+    // CLIENT_STREAM / BI_STREAM
+    @Override
+    public StreamObserver<String> sayHelloStream(StreamObserver<String> response) {
+        return new StreamObserver<String>() {
+            @Override
+            public void onNext(String data) {
+                response.onNext("result：" + data);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+            }
+
+            @Override
+            public void onCompleted() {
+                System.out.println("completed");
+            }
+        };
+    }
+
 }

@@ -258,6 +258,7 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
                 environment.updateAppExternalConfigMap(configCenter.getAppExternalConfiguration());
 
                 // Fetch config from remote config center
+                // 从远程配置中心拉取配置
                 compositeDynamicConfiguration.addConfiguration(prepareEnvironment(configCenter));
             }
             environment.setDynamicConfiguration(compositeDynamicConfiguration);
@@ -609,7 +610,9 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
             return;
         }
 
+        // 这个判断是判断当前应用是不是只是一个消费者，不提供服务，如果不提供服务就不需要进行应用实例注册
         if (isRegisterConsumerInstance()) {
+            // 暴露元数据服务
             exportMetadataService();
             if (hasPreparedApplicationInstance.compareAndSet(false, true)) {
                 // register the local ServiceInstance if required
@@ -809,6 +812,7 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
 
     @Override
     public void notifyModuleChanged(ModuleModel moduleModel, DeployState state) {
+        // 会进行应用注册
         checkState(moduleModel, state);
 
         // notify module state changed or module changed
@@ -821,6 +825,7 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
     public void checkState(ModuleModel moduleModel, DeployState moduleState) {
         synchronized (stateLock) {
             if (!moduleModel.isInternal() && moduleState == DeployState.STARTED) {
+                // 进行应用注册
                 prepareApplicationInstance();
             }
             DeployState newState = calculateState();

@@ -282,6 +282,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         serviceMetadata.getAttachments().putAll(referenceParameters);
 
+        // 根据引入服务的信息创建代理对象
         ref = createProxy(referenceParameters);
 
         serviceMetadata.setTarget(ref);
@@ -463,6 +464,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
      */
     private void aggregateUrlFromRegistry(Map<String, String> referenceParameters) {
         checkRegistry();
+        // 拿到接口级注册和应用级注册的URL
         List<URL> us = ConfigValidationUtils.loadRegistries(this, false);
         if (CollectionUtils.isNotEmpty(us)) {
             for (URL u : us) {

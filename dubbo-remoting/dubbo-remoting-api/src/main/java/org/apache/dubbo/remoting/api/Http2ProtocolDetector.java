@@ -28,6 +28,8 @@ public class Http2ProtocolDetector implements ProtocolDetector {
 
     @Override
     public Result detect(ChannelHandlerContext ctx, ByteBuf in) {
+        // clientPrefaceString表示连接前言，表示要使用HTTP2协议
+
         int prefaceLen = clientPrefaceString.readableBytes();
         int bytesRead = min(in.readableBytes(), prefaceLen);
 

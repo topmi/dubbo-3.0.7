@@ -87,6 +87,8 @@ public class ZookeeperServiceDiscovery extends AbstractServiceDiscovery {
     @Override
     public void doRegister(ServiceInstance serviceInstance) {
         try {
+            // 会在Zookeeper中存储/dubbo/services/应用名/ip地址:支持的某个端口
+            //
             serviceDiscovery.registerService(build(serviceInstance));
         } catch (Exception e) {
             throw new RpcException(REGISTRY_EXCEPTION, "Failed register instance " + serviceInstance.toString(), e);

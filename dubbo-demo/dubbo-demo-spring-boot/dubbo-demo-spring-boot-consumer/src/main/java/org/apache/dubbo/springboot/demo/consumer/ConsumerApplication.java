@@ -21,6 +21,7 @@ import org.apache.dubbo.common.stream.StreamObserver;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.apache.dubbo.springboot.demo.DemoService;
+import org.apache.dubbo.springboot.demo.HelloService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -34,31 +35,37 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ConsumerApplication {
 
-    @DubboReference
+    @DubboReference(loadbalance = "roundrobin")
     private DemoService demoService;
+
+    @DubboReference
+    private HelloService helloService;
 
     @GetMapping("/")
     public String hello(){
 
-        // 服务端流
-        demoService.sayHelloServerStream("zhouyu", new StreamObserver<String>() {
-            @Override
-            public void onNext(String data) {
-                System.out.println(data);
-            }
+        String result = demoService.sayHello("zhouyu");
+        return result;
 
-            @Override
-            public void onError(Throwable throwable) {
-
-            }
-
-            @Override
-            public void onCompleted() {
-                System.out.println("complete");
-            }
-        });
-
-        // 客户端流
+//        // 服务端流
+//        demoService.sayHelloServerStream("zhouyu", new StreamObserver<String>() {
+//            @Override
+//            public void onNext(String data) {
+//                System.out.println(data);
+//            }
+//
+//            @Override
+//            public void onError(Throwable throwable) {
+//
+//            }
+//
+//            @Override
+//            public void onCompleted() {
+//                System.out.println("complete");
+//            }
+//        });
+//
+////         客户端流
 //        StreamObserver<String> streamObserver = demoService.sayHelloStream(new StreamObserver<String>() {
 //            @Override
 //            public void onNext(String data) {
@@ -87,9 +94,7 @@ public class ConsumerApplication {
 //
 //        streamObserver.onNext("request zhouyu world");
 //        streamObserver.onCompleted();
-
-
-        return "success";
+//        return "success";
     }
 
     public static void main(String[] args) {

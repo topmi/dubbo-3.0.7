@@ -284,7 +284,9 @@ public class DefaultServiceInstance implements ServiceInstance {
 
     @Override
     public InstanceAddressURL toURL(String protocol) {
+        // 一个应用实例对应一个instanceAddressURL
         if (instanceAddressURL == null) {
+            // 根据当前服务实例，以及对应的应用MetadataInfo，以及协议生成一个InstanceAddressURL
             instanceAddressURL = new InstanceAddressURL(this, serviceMetadata, protocol);
         }
         return instanceAddressURL;

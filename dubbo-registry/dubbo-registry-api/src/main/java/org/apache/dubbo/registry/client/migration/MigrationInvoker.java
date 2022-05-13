@@ -60,9 +60,9 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
     private ConsumerModel consumerModel;
     private FrameworkStatusReportService reportService;
 
-    private volatile ClusterInvoker<T> invoker;
-    private volatile ClusterInvoker<T> serviceDiscoveryInvoker;
-    private volatile ClusterInvoker<T> currentAvailableInvoker;
+    private volatile ClusterInvoker<T> invoker;  // 用来记录接口级对应的ClusterInvoker
+    private volatile ClusterInvoker<T> serviceDiscoveryInvoker; // 用来记录应用级对应的ClusterInvoker
+    private volatile ClusterInvoker<T> currentAvailableInvoker; // 用来记录使用的到底是接口级，还是应用级
     private volatile MigrationStep step;
     private volatile MigrationRule rule;
     private volatile int promotion = 100;
@@ -164,6 +164,8 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
     @Override
     public boolean migrateToForceInterfaceInvoker(MigrationRule newRule) {
         CountDownLatch latch = new CountDownLatch(1);
+
+        // 生成接口级ClusterInvoker
         refreshInterfaceInvoker(latch);
 
         if (serviceDiscoveryInvoker == null) {
@@ -202,6 +204,7 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
     @Override
     public boolean migrateToForceApplicationInvoker(MigrationRule newRule) {
         CountDownLatch latch = new CountDownLatch(1);
+        // 只找应用级地址
         refreshServiceDiscoveryInvoker(latch);
 
         if (invoker == null) {
@@ -240,7 +243,9 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
     @Override
     public void migrateToApplicationFirstInvoker(MigrationRule newRule) {
         CountDownLatch latch = new CountDownLatch(0);
+        // 接口级ClusterInvoker
         refreshInterfaceInvoker(latch);
+        // 应用级ClusterInvoker
         refreshServiceDiscoveryInvoker(latch);
 
         // directly calculate preferred invoker, will not wait until address notify
@@ -270,9 +275,14 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
 
     @Override
     public Result invoke(Invocation invocation) throws RpcException {
+        // currentAvailableInvoker要么是接口级ClusterInvoker，要么是应用级ClusterInvoker
         if (currentAvailableInvoker != null) {
             if (step == APPLICATION_FIRST) {
+
                 // call ratio calculation based on random value
+                // 在同时支持接口级和应用级的情况下，如果promotion小于100，则每次调用时，生成一个100以内的随机数，如果随机数大于promotion，则走接口级ClusterInvoker进行服务调用
+                // 表示支持部分走接口级调用，部分走应用级调用，看随机数
+                // promotion默认等于100，所以默认不会支持部分
                 if (promotion < 100 && ThreadLocalRandom.current().nextDouble(100) > promotion) {
                     return invoker.invoke(invocation);
                 }
@@ -451,12 +461,15 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
             }
             invoker = registryProtocol.getInvoker(cluster, registry, type, url);
         }
+
+        // 如果接口级服务提供者地址发生了变化（比如增加、删除），则重新计算到底是使用接口级还是应用级
         setListener(invoker, () -> {
             latch.countDown();
             if (reportService.hasReporter()) {
                 reportService.reportConsumptionStatus(
                     reportService.createConsumptionReport(consumerUrl.getServiceInterface(), consumerUrl.getVersion(), consumerUrl.getGroup(), "interface"));
             }
+            // 只有是APPLICATION_FIRST，才需要重新计算，其他两种都不需要计算
             if (step == APPLICATION_FIRST) {
                 calcPreferredInvoker(rule);
             }
@@ -467,6 +480,9 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
         if (serviceDiscoveryInvoker == null || invoker == null) {
             return;
         }
+
+        // 迁移地址比较器，默认为DefaultMigrationAddressComparator
+        // 用来确定到底用 接口级地址还是应用级地址
         Set<MigrationAddressComparator> detectors = ScopeModelUtil.getApplicationModel(consumerUrl == null ? null : consumerUrl.getScopeModel())
             .getExtensionLoader(MigrationAddressComparator.class).getSupportedExtensionInstances();
         if (CollectionUtils.isNotEmpty(detectors)) {

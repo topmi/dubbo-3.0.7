@@ -104,6 +104,7 @@ public class ReflectionPackableMethod implements PackableMethod {
     }
 
     public static ReflectionPackableMethod init(MethodDescriptor methodDescriptor, URL url) {
+        // 默认用hessian2进行序列化
         final String serializeName = url.getParameter(SERIALIZATION_KEY,
             DEFAULT_REMOTING_SERIALIZATION);
         Object stored = methodDescriptor.getAttribute(METHOD_ATTR_PACK);

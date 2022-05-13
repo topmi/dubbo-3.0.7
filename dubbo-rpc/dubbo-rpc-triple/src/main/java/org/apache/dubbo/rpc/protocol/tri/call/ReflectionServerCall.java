@@ -166,6 +166,7 @@ public class ReflectionServerCall extends ServerCall {
                 ClassLoadUtil.switchContextLoader(
                     serviceDescriptor.getServiceInterfaceClass().getClassLoader());
             }
+            // 把解压之后的字节数据进行反序列化
             final Object obj = packableMethod.getRequestUnpack().unpack(message);
             listener.onMessage(obj);
         }

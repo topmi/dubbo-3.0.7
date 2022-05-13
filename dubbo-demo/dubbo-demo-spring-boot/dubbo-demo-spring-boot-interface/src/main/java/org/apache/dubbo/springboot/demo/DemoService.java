@@ -22,18 +22,16 @@ import java.util.concurrent.CompletableFuture;
 
 public interface DemoService {
 
+    // UNARY
     String sayHello(String name);
 
-    default CompletableFuture<String> sayHelloAsync(String name) {
-        return CompletableFuture.completedFuture(sayHello(name));
-    }
-
+    // SERVER_STREAM
     default void sayHelloServerStream(String name, StreamObserver<String> response) {
     }
 
+    // CLIENT_STREAM / BI_STREAM
     default StreamObserver<String> sayHelloStream(StreamObserver<String> response) {
         return response;
     }
-
 
 }

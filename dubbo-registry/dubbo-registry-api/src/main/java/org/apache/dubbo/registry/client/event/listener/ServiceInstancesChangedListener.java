@@ -76,6 +76,7 @@ public class ServiceInstancesChangedListener {
 
     protected AtomicBoolean destroyed = new AtomicBoolean(false);
 
+    // 应用名对应的所有应用实例
     protected Map<String, List<ServiceInstance>> allInstances;
     protected Map<String, Object> serviceUrls;
 
@@ -126,6 +127,7 @@ public class ServiceInstancesChangedListener {
             logger.debug(event.getServiceInstances().toString());
         }
 
+        // {应用编号：List<应用实例>}
         Map<String, List<ServiceInstance>> revisionToInstances = new HashMap<>();
         Map<String, Map<String, Set<String>>> localServiceToRevisions = new HashMap<>();
 
@@ -149,7 +151,11 @@ public class ServiceInstancesChangedListener {
         for (Map.Entry<String, List<ServiceInstance>> entry : revisionToInstances.entrySet()) {
             String revision = entry.getKey();
             List<ServiceInstance> subInstances = entry.getValue();
+            // 调用某个应用实例中的元数据服务获取应用的MetadataInfo
             MetadataInfo metadata = serviceDiscovery.getRemoteMetadata(revision, subInstances);
+
+            // revision相当于应用编号
+            // 解析应用的元数据信息，并存入localServiceToRevisions中，localServiceToRevisions的格式为{协议名：{服务名+协议名：revision}}
             parseMetadata(revision, metadata, localServiceToRevisions);
             // update metadata into each instance, in case new instance created.
             for (ServiceInstance tmpInstance : subInstances) {
@@ -181,12 +187,16 @@ public class ServiceInstancesChangedListener {
 
         Map<String, Map<Set<String>, Object>> protocolRevisionsToUrls = new HashMap<>();
         Map<String, Object> newServiceUrls = new HashMap<>();
+        // localServiceToRevisions的格式为{协议名：{服务接口名+协议名：revision}}
         for (Map.Entry<String, Map<String, Set<String>>> entry : localServiceToRevisions.entrySet()) {
             String protocol = entry.getKey();
+
+            // entry.getValue() 得到是 {服务接口名+协议名：revision}
             entry.getValue().forEach((protocolServiceKey, revisions) -> {
                 Map<Set<String>, Object> revisionsToUrls = protocolRevisionsToUrls.computeIfAbsent(protocol, k -> new HashMap<>());
                 Object urls = revisionsToUrls.get(revisions);
                 if (urls == null) {
+                    // 根据协议和应用编号生成InstanceAddressURL对象
                     urls = getServiceUrlsCache(revisionToInstances, revisions, protocol);
                     revisionsToUrls.put(revisions, urls);
                 }
@@ -194,7 +204,7 @@ public class ServiceInstancesChangedListener {
                 newServiceUrls.put(protocolServiceKey, urls);
             });
         }
-
+        // newServiceUrls的格式为{服务接口名+协议名：InstanceAddressURL对象}，不同服务相同协议对应同一个InstanceAddressURL对象
         this.serviceUrls = newServiceUrls;
         this.notifyAddressChanged();
     }
@@ -230,6 +240,7 @@ public class ServiceInstancesChangedListener {
             urls = getAddresses(protocolKey, listener.getConsumerUrl());
         }
 
+        // urls就是当前应用所对应的所有InstanceAddressURL对象
         if (CollectionUtils.isNotEmpty(urls)) {
             listener.notify(urls);
         }
@@ -362,15 +373,25 @@ public class ServiceInstancesChangedListener {
     protected Object getServiceUrlsCache(Map<String, List<ServiceInstance>> revisionToInstances, Set<String> revisions, String protocol) {
         List<URL> urls = new ArrayList<>();
         for (String r : revisions) {
+
+            // 获取应用编号对应的所有应用实例
             for (ServiceInstance i : revisionToInstances.get(r)) {
                 // different protocols may have ports specified in meta
                 if (ServiceInstanceMetadataUtils.hasEndpoints(i)) {
+                    // 获取某个应用实例中指定协议的Endpoint
                     DefaultServiceInstance.Endpoint endpoint = ServiceInstanceMetadataUtils.getEndpoint(i, protocol);
                     if (endpoint != null && endpoint.getPort() != i.getPort()) {
+                        // 生成InstanceAddressURL，用endpoint中的port替换ServiceInstance中的port，也就是用协议对应的端口
+                        // 如果应用实例对象中的端口不等于endpoint中对应协议的端口，则会生成一个新的DefaultServiceInstance对象
+                        // 所以可能存在这种情况：本来只有一个应用实例，但是该应用支持两个协议，端口不一样，那么最终就会生成两个DefaultServiceInstance对象并添加到urls中
+                        // 所以一个应用实例如果同时绑定了多个端口，那最终就会生成多个DefaultServiceInstance对象，每个对象中的port属性不一样
+                        // 每个DefaultServiceInstance对象对应一个InstanceAddressURL对象，它是一个URL对象，将来会用来进行protocol.refer()，然后生成对应协议的Invoker
                         urls.add(((DefaultServiceInstance) i).copyFrom(endpoint).toURL(endpoint.getProtocol()));
                         continue;
                     }
                 }
+
+                // 生成InstanceAddressURL
                 urls.add(i.toURL(protocol).setScopeModel(i.getApplicationModel()));
             }
         }

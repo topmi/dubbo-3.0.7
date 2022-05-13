@@ -167,6 +167,7 @@ public class ApplicationConfig extends AbstractConfig {
 
     /**
      * Used to control whether register instance to registry or not. Set to 'false' only when instance is pure consumer.
+     * 这个配置的意思时，当前应用是不是只是一个消费者，不提供服务，如果不提供服务就不需要进行应用注册
      */
     private Boolean registerConsumer;
 

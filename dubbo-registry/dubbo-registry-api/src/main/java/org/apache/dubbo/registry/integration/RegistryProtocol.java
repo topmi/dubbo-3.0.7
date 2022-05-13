@@ -483,6 +483,7 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
             }
         }
 
+        // Cluster表示对应的集群容错机制
         Cluster cluster = Cluster.getCluster(url.getScopeModel(), qs.get(CLUSTER_KEY));
         return doRefer(cluster, registry, type, url, qs);
     }
@@ -491,6 +492,7 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
         Map<String, Object> consumerAttribute = new HashMap<>(url.getAttributes());
         consumerAttribute.remove(REFER_KEY);
         String p = isEmpty(parameters.get(PROTOCOL_KEY)) ? CONSUMER : parameters.get(PROTOCOL_KEY);
+
         URL consumerUrl = new ServiceConfigURL (
             p,
             null,
@@ -501,7 +503,15 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
             consumerAttribute
         );
         url = url.putAttribute(CONSUMER_URL_KEY, consumerUrl);
+
+        // InterfaceCompatibleRegistryProtocol类继承了RegistryProtocol，并重写了getMigrationInvoker方法
+        // 要么是一个MigrationInvoker，要么是一个ServiceDiscoveryMigrationInvoker
+        // 默认是MigrationInvoker，MigrationInvoker中也会用到ServiceDiscoveryMigrationInvoker
+        // MigrationInvoker的功能是即支持接口级地址，也支持应用级地址
+        // ServiceDiscoveryMigrationInvoker就只支持应用级地址
         ClusterInvoker<T> migrationInvoker = getMigrationInvoker(this, cluster, registry, type, url, consumerUrl);
+
+        // 通过RegistryProtocolListener对migrationInvoker进行处理，处理完之后依然返回migrationInvoker
         return interceptInvoker(migrationInvoker, url, consumerUrl);
     }
 
@@ -531,17 +541,20 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
             return invoker;
         }
 
+        // 利用RegistryProtocolListener对传入进来的ClusterInvoker进行修改
         for (RegistryProtocolListener listener : listeners) {
             listener.onRefer(this, invoker, consumerUrl, url);
         }
         return invoker;
     }
 
+    // 找应用级注册地址，并封装为一个ClusterInvoker
     public <T> ClusterInvoker<T> getServiceDiscoveryInvoker(Cluster cluster, Registry registry, Class<T> type, URL url) {
         DynamicDirectory<T> directory = new ServiceDiscoveryRegistryDirectory<>(type, url);
         return doCreateInvoker(directory, cluster, registry, type);
     }
 
+    // 找接口级注册地址，并封装为一个ClusterInvoker
     public <T> ClusterInvoker<T> getInvoker(Cluster cluster, Registry registry, Class<T> type, URL url) {
         // FIXME, this method is currently not used, create the right registry before enable.
         DynamicDirectory<T> directory = new RegistryDirectory<>(type, url);
@@ -549,6 +562,14 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
     }
 
     protected <T> ClusterInvoker<T> doCreateInvoker(DynamicDirectory<T> directory, Cluster cluster, Registry registry, Class<T> type) {
+        // DynamicDirectory动态服务目录有两种：RegistryDirectory和ServiceDiscoveryRegistryDirectory
+        // RegistryDirectory用来记录和监听接口级服务提供者地址
+        // ServiceDiscoveryRegistryDirectory用来记录和监听应用级服务提供者地址
+
+        // Registry也有两种：ZookeeperRegistry和ServiceDiscoveryRegistry，都继承了FailbackRegistry
+
+        // 一个DynamicDirectory中包含一个Registry，Registry用来同步远程注册中心的数据，所以需要监听数据的变化
+
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
         // all attributes of REFER_KEY
@@ -567,6 +588,7 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
             registry.register(directory.getRegisteredConsumerUrl());
         }
         directory.buildRouterChain(urlToRegistry);
+        // 订阅相应的注册中心目录
         directory.subscribe(toSubscribeUrl(urlToRegistry));
 
         return (ClusterInvoker<T>) cluster.join(directory, true);

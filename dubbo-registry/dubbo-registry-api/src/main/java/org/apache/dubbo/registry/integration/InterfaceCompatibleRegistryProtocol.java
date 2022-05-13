@@ -60,6 +60,7 @@ public class InterfaceCompatibleRegistryProtocol extends RegistryProtocol {
 
     @Override
     public <T> ClusterInvoker<T> getServiceDiscoveryInvoker(Cluster cluster, Registry registry, Class<T> type, URL url) {
+        // 先把url的protocol改为service-discovery-registry，本来是zookeeper，这样得到的registry就是ServiceDiscoveryRegistry
         registry = getRegistry(super.getRegistryUrl(url));
         DynamicDirectory<T> directory = new ServiceDiscoveryRegistryDirectory<>(type, url);
         return doCreateInvoker(directory, cluster, registry, type);

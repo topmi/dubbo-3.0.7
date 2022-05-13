@@ -228,6 +228,7 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
                 observer.onCompleted();
             });
 
+            // 方法入参
             pureArgument = invocation.getArguments()[0];
             result = new AsyncRpcResult(CompletableFuture.completedFuture(new AppResponse()),
                 invocation);
@@ -244,8 +245,13 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
 
         // UnaryClientCallListener接收到响应数据后，会把响应数据AppResponse设置到future中，并触发future的complete
         ClientCall.Listener callListener = new UnaryClientCallListener(future);
+
+        // 请求原数据，对应的就是Http2HeadersFrame
         RequestMetadata request = createRequest(methodDescriptor, invocation, timeout);
+
         final StreamObserver<Object> requestObserver = call.start(request, callListener);
+
+        // 发送入参，如果请求头没有发送则会发送请求头
         requestObserver.onNext(pureArgument);
         requestObserver.onCompleted();
         return result;
@@ -267,7 +273,7 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
         meta.method = methodDescriptor;
         meta.scheme = getSchemeFromUrl(url);
         // TODO read compressor from config
-        meta.compressor = Compressor.NONE;
+        meta.compressor = Compressor.NONE; // Identity.IDENTITY
         meta.address = url.getAddress();
         meta.service = url.getPath();
         meta.group = url.getGroup();

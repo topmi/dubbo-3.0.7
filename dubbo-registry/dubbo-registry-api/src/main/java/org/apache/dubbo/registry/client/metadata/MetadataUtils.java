@@ -119,6 +119,7 @@ public class MetadataUtils {
             builder = loader.getExtension(SpringCloudMetadataServiceURLBuilder.NAME);
         }
 
+        // 利用应用实例中的信息，比如ip和port生成url，协议写死了为dubbo
         List<URL> urls = builder.build(instance);
         if (CollectionUtils.isEmpty(urls)) {
             throw new IllegalStateException("Introspection service discovery mode is enabled "
@@ -128,6 +129,8 @@ public class MetadataUtils {
         // Simply rely on the first metadata url, as stated in MetadataServiceURLBuilder.
         ScopeModel scopeModel = instance.getApplicationModel();
         Protocol protocol = scopeModel.getExtensionLoader(Protocol.class).getAdaptiveExtension();
+
+        // 生成一个MetadataService的Invoker
         Invoker<MetadataService> invoker = protocol.refer(MetadataService.class, urls.get(0));
 
         ProxyFactory proxyFactory = scopeModel.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
@@ -135,6 +138,9 @@ public class MetadataUtils {
     }
 
     public static MetadataInfo getRemoteMetadata(String revision, List<ServiceInstance> instances, MetadataReport metadataReport) {
+        // 准备获取某个应有的MetadataInfo
+
+        // 随机选择出来一个应用实例
         ServiceInstance instance = selectInstance(instances);
         String metadataType = ServiceInstanceMetadataUtils.getMetadataStorageType(instance);
         MetadataInfo metadataInfo;
@@ -143,12 +149,16 @@ public class MetadataUtils {
                 logger.debug("Instance " + instance.getAddress() + " is using metadata type " + metadataType);
             }
             if (REMOTE_METADATA_STORAGE_TYPE.equals(metadataType)) {
+                // 从元数据中获取应用元数据
                 metadataInfo = MetadataUtils.getMetadata(revision, instance, metadataReport);
             } else {
+                // 从应用实例上获取应用元数据
                 // change the instance used to communicate to avoid all requests route to the same instance
                 MetadataService metadataServiceProxy = null;
                 try {
+                    // 生成一个MetadataService接口的代理对象
                     metadataServiceProxy = MetadataUtils.referProxy(instance);
+                    // 一次RPC调用，利用Dubbo协议调用
                     metadataInfo = metadataServiceProxy.getMetadataInfo(ServiceInstanceMetadataUtils.getExportedServicesRevision(instance));
                 } finally {
                     if (metadataServiceProxy instanceof Destroyable) {

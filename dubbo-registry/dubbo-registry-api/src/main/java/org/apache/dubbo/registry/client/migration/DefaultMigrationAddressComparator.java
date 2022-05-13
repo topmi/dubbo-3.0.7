@@ -42,6 +42,8 @@ public class DefaultMigrationAddressComparator implements MigrationAddressCompar
 
     @Override
     public <T> boolean shouldMigrate(ClusterInvoker<T> newInvoker, ClusterInvoker<T> oldInvoker, MigrationRule rule) {
+        // newInvoker指的是应用级地址，oldInvoker指的是接口级地址
+
         Map<String, Integer> migrationData = serviceMigrationData.computeIfAbsent(oldInvoker.getUrl().getDisplayServiceKey(), _k -> new ConcurrentHashMap<>());
 
         if (!newInvoker.hasProxyInvokers()) {
@@ -57,6 +59,8 @@ public class DefaultMigrationAddressComparator implements MigrationAddressCompar
             return true;
         }
 
+        // 一个接口对应一个应用，如果该应用有两个实例，如果这两个实例用的都是3.0，那么newAddressSize=2， oldAddressSize=2
+        // 如果一个实例用的是2.7，一个用的是3.0，那么newAddressSize=1，oldAddressSize=2
         int newAddressSize = getAddressSize(newInvoker);
         int oldAddressSize = getAddressSize(oldInvoker);
 
@@ -78,7 +82,7 @@ public class DefaultMigrationAddressComparator implements MigrationAddressCompar
         }
 
         logger.info("serviceKey:" + oldInvoker.getUrl().getServiceKey() + " Instance address size " + newAddressSize + ", interface address size " + oldAddressSize + ", threshold " + threshold);
-
+        // 如果只有newAddressSize，表示provider用的都是3.0版本
         if (newAddressSize != 0 && oldAddressSize == 0) {
             return true;
         }
@@ -86,6 +90,7 @@ public class DefaultMigrationAddressComparator implements MigrationAddressCompar
             return false;
         }
 
+        // threshold默认为-1，表示一定会返回true，那就会用应用级服务提供者
         if (((float) newAddressSize / (float) oldAddressSize) >= threshold) {
             return true;
         }

@@ -144,6 +144,7 @@ public class ServiceDiscoveryRegistryDirectory<T> extends DynamicDirectory<T> {
             }
         }
 
+        // 根据InstanceAddressURL进行refer，生成invoker
         refreshOverrideAndInvoker(instanceUrls);
     }
 
@@ -222,6 +223,7 @@ public class ServiceDiscoveryRegistryDirectory<T> extends DynamicDirectory<T> {
                 oldUrlInvokerMap = new LinkedHashMap<>(Math.round(1 + localUrlInvokerMap.size() / DEFAULT_HASHMAP_LOAD_FACTOR));
                 localUrlInvokerMap.forEach(oldUrlInvokerMap::put);
             }
+            // 生成invoker
             Map<String, Invoker<T>> newUrlInvokerMap = toInvokers(oldUrlInvokerMap, invokerUrls);// Translate url list to Invoker map
             logger.info("Refreshed invoker size " + newUrlInvokerMap.size());
 

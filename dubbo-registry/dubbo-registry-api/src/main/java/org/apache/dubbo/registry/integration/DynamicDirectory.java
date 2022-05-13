@@ -177,6 +177,7 @@ public abstract class DynamicDirectory<T> extends AbstractDirectory<T> implement
 
     public void subscribe(URL url) {
         setSubscribeUrl(url);
+        // 这里要区分ZookeeperRegistry和ServiceDiscoveryRegistry
         registry.subscribe(url, this);
     }
 

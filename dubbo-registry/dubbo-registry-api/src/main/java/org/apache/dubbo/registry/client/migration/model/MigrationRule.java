@@ -177,6 +177,7 @@ public class MigrationRule {
          * FIXME, it's really hard to follow setting default values here.
          */
         if (step == null) {
+            // 读取dubbo.application.service-discovery.migration配置项
             // initial step : APPLICATION_FIRST
             step = MigrationStep.APPLICATION_FIRST;
             step = Enum.valueOf(MigrationStep.class,

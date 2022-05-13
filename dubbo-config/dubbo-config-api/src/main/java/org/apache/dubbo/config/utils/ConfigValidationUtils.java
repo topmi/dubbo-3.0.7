@@ -252,12 +252,17 @@ public class ConfigValidationUtils {
                         result.add(interfaceCompatibleRegistryURL);
                     }
                 } else {
+                    // 获取用户所配置的register-mode，默认为all
                     registerMode = registryURL.getParameter(REGISTER_MODE_KEY, ConfigurationUtils.getCachedDynamicProperty(scopeModel, DUBBO_REGISTER_MODE_DEFAULT_KEY, DEFAULT_REGISTER_MODE_ALL));
                     if (!isValidRegisterMode(registerMode)) {
                         registerMode = DEFAULT_REGISTER_MODE_INTERFACE;
                     }
+
+                    // 是否需要进行应用级注册
                     if ((DEFAULT_REGISTER_MODE_INSTANCE.equalsIgnoreCase(registerMode) || DEFAULT_REGISTER_MODE_ALL.equalsIgnoreCase(registerMode))
                         && registryNotExists(registryURL, registryList, SERVICE_REGISTRY_PROTOCOL)) {
+
+                        // 如果需要，则生成一个service-discovery-registry://xxx的URL，后续就会进行应用注册
                         URL serviceDiscoveryRegistryURL = URLBuilder.from(registryURL)
                             .setProtocol(SERVICE_REGISTRY_PROTOCOL)
                             .removeParameter(REGISTRY_TYPE_KEY)

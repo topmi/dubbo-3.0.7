@@ -588,8 +588,10 @@ public class InstanceAddressURL extends URL {
             return instance.toString();
         }
 
+        // 服务接口名+协议名
         String protocolServiceKey = getProtocolServiceKey();
         if (StringUtils.isNotEmpty(protocolServiceKey)) {
+            // 服务实例信息和应用元数据信息中对应服务信息
             return instance.toString() + ", " + metadataInfo.getServiceString(protocolServiceKey);
         }
 
