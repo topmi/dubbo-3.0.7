@@ -588,7 +588,7 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
             registry.register(directory.getRegisteredConsumerUrl());
         }
         directory.buildRouterChain(urlToRegistry);
-        // 订阅相应的注册中心目录
+        // 订阅相应的注册中心目录，触发生成Invoker
         directory.subscribe(toSubscribeUrl(urlToRegistry));
 
         return (ClusterInvoker<T>) cluster.join(directory, true);

@@ -23,7 +23,7 @@ import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.springboot.demo.DemoService;
 import org.apache.dubbo.springboot.demo.HelloService;
 
-@DubboService
+//@DubboService
 public class HelloServiceImpl implements HelloService {
 
     @Override

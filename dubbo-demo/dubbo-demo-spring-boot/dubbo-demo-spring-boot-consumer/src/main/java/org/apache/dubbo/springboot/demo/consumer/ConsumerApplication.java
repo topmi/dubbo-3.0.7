@@ -38,14 +38,26 @@ public class ConsumerApplication {
     @DubboReference(loadbalance = "roundrobin")
     private DemoService demoService;
 
-    @DubboReference
-    private HelloService helloService;
+//    @DubboReference
+//    private HelloService helloService;
 
     @GetMapping("/")
     public String hello(){
 
-        String result = demoService.sayHello("zhouyu");
-        return result;
+        for (int i =0; i<100; i++) {
+            String result = demoService.sayHello("zhouyu");
+            System.out.println(result);
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return "success";
+
+//        return result;
 
 //        // 服务端流
 //        demoService.sayHelloServerStream("zhouyu", new StreamObserver<String>() {

@@ -25,7 +25,7 @@ import org.apache.dubbo.springboot.demo.DemoService;
 
 import java.util.concurrent.CompletableFuture;
 
-@DubboService
+@DubboService(protocol = "p1")
 public class DemoServiceImpl implements DemoService {
 
     // UNARY
@@ -34,32 +34,32 @@ public class DemoServiceImpl implements DemoService {
         return "Hello " + name + RpcContext.getServerContext().getLocalPort();
     }
 
-    // SERVER_STREAM
-    @Override
-    public void sayHelloServerStream(String name, StreamObserver<String> response) {
-        response.onNext(name + " hello");
-        response.onNext(name + " world");
-        response.onCompleted();
-    }
-
-    // CLIENT_STREAM / BI_STREAM
-    @Override
-    public StreamObserver<String> sayHelloStream(StreamObserver<String> response) {
-        return new StreamObserver<String>() {
-            @Override
-            public void onNext(String data) {
-                response.onNext("result：" + data);
-            }
-
-            @Override
-            public void onError(Throwable throwable) {
-            }
-
-            @Override
-            public void onCompleted() {
-                System.out.println("completed");
-            }
-        };
-    }
+//    // SERVER_STREAM
+//    @Override
+//    public void sayHelloServerStream(String name, StreamObserver<String> response) {
+//        response.onNext(name + " hello");
+//        response.onNext(name + " world");
+//        response.onCompleted();
+//    }
+//
+//    // CLIENT_STREAM / BI_STREAM
+//    @Override
+//    public StreamObserver<String> sayHelloStream(StreamObserver<String> response) {
+//        return new StreamObserver<String>() {
+//            @Override
+//            public void onNext(String data) {
+//                response.onNext("result：" + data);
+//            }
+//
+//            @Override
+//            public void onError(Throwable throwable) {
+//            }
+//
+//            @Override
+//            public void onCompleted() {
+//                System.out.println("completed");
+//            }
+//        };
+//    }
 
 }

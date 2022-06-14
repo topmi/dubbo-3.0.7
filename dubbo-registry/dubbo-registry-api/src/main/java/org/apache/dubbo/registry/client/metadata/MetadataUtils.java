@@ -170,7 +170,7 @@ public class MetadataUtils {
             logger.error("Failed to get app metadata for revision " + revision + " for type " + metadataType + " from instance " + instance.getAddress(), e);
             metadataInfo = null;
         }
-
+        // metadataInfo主要记录了，该应用下有哪些接口服务以及支持的协议
         if (metadataInfo == null) {
             metadataInfo = MetadataInfo.EMPTY;
         }

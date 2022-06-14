@@ -142,6 +142,7 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
             initialize();
 
             // export services
+            // 服务导出
             exportServices();
 
             // prepare application instance
@@ -151,6 +152,7 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
             }
 
             // refer services
+            // 服务引入
             referServices();
 
             // if no async export/refer services, just set started

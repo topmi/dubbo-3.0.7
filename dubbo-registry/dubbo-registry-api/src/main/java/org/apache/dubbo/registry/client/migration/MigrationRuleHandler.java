@@ -54,6 +54,7 @@ public class MigrationRuleHandler<T> {
             logger.error("Failed to get step and threshold info from rule: " + rule, e);
         }
 
+        // 生成应用级Invoker和接口级Invoker
         if (refreshInvoker(step, threshold, rule)) {
             // refresh success, update rule
             setMigrationRule(rule);

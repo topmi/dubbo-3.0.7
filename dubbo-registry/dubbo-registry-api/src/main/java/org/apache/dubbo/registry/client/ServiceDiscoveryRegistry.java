@@ -213,7 +213,7 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
 //                }
                 return;
             }
-
+            // subscribedServices为当前接口所对应的应用名
             subscribeURLs(url, listener, subscribedServices);
         } finally {
             mappingLock.unlock();
@@ -308,10 +308,10 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
                 serviceInstancesChangedListener = serviceDiscovery.createListener(serviceNames);
                 serviceInstancesChangedListener.setUrl(url);
                 for (String serviceName : serviceNames) {
-                    // 根据应用名，从/dubbo/services/应用名 节点下查出应用实例数据，比如两个实例
+                    // 根据应用名，从/dubbo/services/应用名 节点下查出应用实例，实例信息主要包括实例的ip和绑定的端口之一（因为可能绑定了多个端口）
                     List<ServiceInstance> serviceInstances = serviceDiscovery.getInstances(serviceName);
                     if (CollectionUtils.isNotEmpty(serviceInstances)) {
-                        // 根据找到的应用实例信息，serviceName是应用名，serviceInstances是应用实例
+                        // 查到了应用的实例信息之后，就会通过元数据中心或元数据服务找到应用的元数据
                         serviceInstancesChangedListener.onEvent(new ServiceInstancesChangedEvent(serviceName, serviceInstances));
                     }
                 }

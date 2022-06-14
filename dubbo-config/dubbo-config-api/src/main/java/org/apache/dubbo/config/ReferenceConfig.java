@@ -216,6 +216,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
             synchronized (this) {
                 if (ref == null) {
+                    // 创建代理对象并赋值给ref
                     init();
                 }
             }
@@ -395,6 +396,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                     aggregateUrlFromRegistry(referenceParameters);
                 }
             }
+            // 创建Invoker
             createInvokerForRemote();
         }
 
@@ -493,6 +495,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
     private void createInvokerForRemote() {
         if (urls.size() == 1) {
             URL curUrl = urls.get(0);
+            // 生成invoker
             invoker = protocolSPI.refer(interfaceClass, curUrl);
             if (!UrlUtils.isRegistry(curUrl)) {
                 List<Invoker<?>> invokers = new ArrayList<>();

@@ -120,15 +120,18 @@ public class ServiceInstancesChangedListener {
         if (destroyed.get() || !accept(event) || isRetryAndExpired(event)) {
             return;
         }
-
+        // event中包含了某个应用的全部实例，记录在allInstances中
         refreshInstance(event);
 
         if (logger.isDebugEnabled()) {
             logger.debug(event.getServiceInstances().toString());
         }
 
-        // {应用编号：List<应用实例>}
+        // 记录{应用编号：List<应用实例>}，将当前应用的实例按应用编号分组，一个应用的多个实例的应用编号是一样的
         Map<String, List<ServiceInstance>> revisionToInstances = new HashMap<>();
+
+        // {"tri":{"org.apache.dubbo.springboot.demo.DemoService:tri":[ae4f861888a36f783ad520bfc832a356]}}
+        // 将应用按协议分组
         Map<String, Map<String, Set<String>>> localServiceToRevisions = new HashMap<>();
 
         // grouping all instances of this app(service name) by revision
@@ -149,13 +152,15 @@ public class ServiceInstancesChangedListener {
 
         // get MetadataInfo with revision
         for (Map.Entry<String, List<ServiceInstance>> entry : revisionToInstances.entrySet()) {
-            String revision = entry.getKey();
-            List<ServiceInstance> subInstances = entry.getValue();
-            // 调用某个应用实例中的元数据服务获取应用的MetadataInfo
+            String revision = entry.getKey(); // 应用编号
+            List<ServiceInstance> subInstances = entry.getValue(); // 实例列表
+
+            // 获取应用的元数据（从元数据中心或元数据服务获取）
             MetadataInfo metadata = serviceDiscovery.getRemoteMetadata(revision, subInstances);
 
-            // revision相当于应用编号
-            // 解析应用的元数据信息，并存入localServiceToRevisions中，localServiceToRevisions的格式为{协议名：{服务名+协议名：revision}}
+            // revision是应用编号
+            // 解析应用的元数据信息，并存入localServiceToRevisions中，localServiceToRevisions的格式为{协议名：{接口名+协议名：revision}}
+            // 这里会得到一个应用下支持哪些协议
             parseMetadata(revision, metadata, localServiceToRevisions);
             // update metadata into each instance, in case new instance created.
             for (ServiceInstance tmpInstance : subInstances) {
@@ -187,24 +192,40 @@ public class ServiceInstancesChangedListener {
 
         Map<String, Map<Set<String>, Object>> protocolRevisionsToUrls = new HashMap<>();
         Map<String, Object> newServiceUrls = new HashMap<>();
-        // localServiceToRevisions的格式为{协议名：{服务接口名+协议名：revision}}
+
+        // localServiceToRevisions的格式为
+        // {"tri":{"org.apache.dubbo.springboot.demo.DemoService:tri":[ae4f861888a36f783ad520bfc832a356]}}
+        // 根据这个格式，我们可以知道，多个不同的应用下可以提供同一个接口服务
         for (Map.Entry<String, Map<String, Set<String>>> entry : localServiceToRevisions.entrySet()) {
+
+            // 某个协议
             String protocol = entry.getKey();
 
-            // entry.getValue() 得到是 {服务接口名+协议名：revision}
+            // entry.getValue() 得到是 {服务接口名+协议名：revisions}
             entry.getValue().forEach((protocolServiceKey, revisions) -> {
+                //
                 Map<Set<String>, Object> revisionsToUrls = protocolRevisionsToUrls.computeIfAbsent(protocol, k -> new HashMap<>());
                 Object urls = revisionsToUrls.get(revisions);
                 if (urls == null) {
-                    // 根据协议和应用编号生成InstanceAddressURL对象
+                    // 每个协议+每个实例 生成一个InstanceAddressURL
+                    // 遍历每个应用的每个实例，按当前协议所绑定的端口生成InstanceAddressURL
+                    // 如果一个应用中支持两个协议（tri和dubbo），分别绑定了两个端口，并且有两个实例
+                    // 那就会生成4个InstanceAddressURL
+                    // InstanceAddressURL1：tri://192.168.0.100:20881
+                    // InstanceAddressURL2：tri://192.168.0.101:20881
+                    // InstanceAddressURL3：dubbo://192.168.0.100:20880
+                    // InstanceAddressURL4：dubbo://192.168.0.101:20880
+
+                    // urls中是某个协议对应的InstanceAddressUR
                     urls = getServiceUrlsCache(revisionToInstances, revisions, protocol);
                     revisionsToUrls.put(revisions, urls);
                 }
-
+                // 接口名+协议名：InstanceAddressURLs
+                //
                 newServiceUrls.put(protocolServiceKey, urls);
             });
         }
-        // newServiceUrls的格式为{服务接口名+协议名：InstanceAddressURL对象}，不同服务相同协议对应同一个InstanceAddressURL对象
+        // 记录了某个接口和特定的协议下的InstanceAddressURLs
         this.serviceUrls = newServiceUrls;
         this.notifyAddressChanged();
     }
@@ -213,7 +234,7 @@ public class ServiceInstancesChangedListener {
         if (destroyed.get()) {
             return;
         }
-
+        // 固定从SUPPORTED_PROTOCOLS中指定的协议，结合当前接口名拼装出protocolServiceKeys：接口名:协议名
         Set<String> protocolServiceKeys = getProtocolServiceKeyList(serviceKey, listener);
         for (String protocolServiceKey : protocolServiceKeys) {
             // Add to global listeners
@@ -230,6 +251,8 @@ public class ServiceInstancesChangedListener {
             urls = new ArrayList<>();
             for (NotifyListenerWithKey notifyListenerWithKey : this.listeners.get(serviceKey)) {
                 String protocolKey = notifyListenerWithKey.getProtocolServiceKey();
+
+                // 根据接口名:协议名，查出对应的InstanceAddressURL
                 List<URL> urlsOfProtocol = getAddresses(protocolKey, listener.getConsumerUrl());
                 if (CollectionUtils.isNotEmpty(urlsOfProtocol)) {
                     urls.addAll(urlsOfProtocol);
@@ -372,26 +395,26 @@ public class ServiceInstancesChangedListener {
 
     protected Object getServiceUrlsCache(Map<String, List<ServiceInstance>> revisionToInstances, Set<String> revisions, String protocol) {
         List<URL> urls = new ArrayList<>();
+        // 遍历每个应用
         for (String r : revisions) {
 
             // 获取应用编号对应的所有应用实例
             for (ServiceInstance i : revisionToInstances.get(r)) {
+
                 // different protocols may have ports specified in meta
                 if (ServiceInstanceMetadataUtils.hasEndpoints(i)) {
                     // 获取某个应用实例中指定协议的Endpoint
                     DefaultServiceInstance.Endpoint endpoint = ServiceInstanceMetadataUtils.getEndpoint(i, protocol);
+
+                    // 如果实例信息中的端口，不等于实例上当前协议所绑定的端口，因为实例信息中的端口只是取的众多端口中的一个
+                    // 那就用endpoint中的端口来生成InstanceAddressURL对象
                     if (endpoint != null && endpoint.getPort() != i.getPort()) {
-                        // 生成InstanceAddressURL，用endpoint中的port替换ServiceInstance中的port，也就是用协议对应的端口
-                        // 如果应用实例对象中的端口不等于endpoint中对应协议的端口，则会生成一个新的DefaultServiceInstance对象
-                        // 所以可能存在这种情况：本来只有一个应用实例，但是该应用支持两个协议，端口不一样，那么最终就会生成两个DefaultServiceInstance对象并添加到urls中
-                        // 所以一个应用实例如果同时绑定了多个端口，那最终就会生成多个DefaultServiceInstance对象，每个对象中的port属性不一样
-                        // 每个DefaultServiceInstance对象对应一个InstanceAddressURL对象，它是一个URL对象，将来会用来进行protocol.refer()，然后生成对应协议的Invoker
                         urls.add(((DefaultServiceInstance) i).copyFrom(endpoint).toURL(endpoint.getProtocol()));
                         continue;
                     }
                 }
 
-                // 生成InstanceAddressURL
+                // 用当前实例信息来生成InstanceAddressURL
                 urls.add(i.toURL(protocol).setScopeModel(i.getApplicationModel()));
             }
         }

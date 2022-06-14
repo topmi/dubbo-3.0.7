@@ -257,6 +257,7 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
         DefaultServiceInstance instance = new DefaultServiceInstance(serviceName, applicationModel);
         instance.setServiceMetadata(metadataInfo);
         setMetadataStorageType(instance, metadataType);
+        // 处理处理DefaultServiceInstance中的metadata
         ServiceInstanceMetadataUtils.customizeInstance(instance, applicationModel);
         return instance;
     }

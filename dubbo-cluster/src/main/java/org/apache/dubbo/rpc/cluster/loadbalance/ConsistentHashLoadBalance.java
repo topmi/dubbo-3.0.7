@@ -163,6 +163,7 @@ public class ConsistentHashLoadBalance extends AbstractLoadBalance {
              * every request. In my opinion, this is not worth. So it is not a
              * problem for this part is not complete thread safety.
              */
+            // 超载
             double overloadThread = ((double) totalRequestCount.get() / (double) serverCount) * OVERLOAD_RATIO_THREAD;
             /**
              * Find a valid server node:
