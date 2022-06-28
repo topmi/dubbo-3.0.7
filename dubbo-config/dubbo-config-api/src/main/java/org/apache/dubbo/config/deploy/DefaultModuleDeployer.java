@@ -157,6 +157,7 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
 
             // if no async export/refer services, just set started
             if (asyncExportingFutures.isEmpty() && asyncReferringFutures.isEmpty()) {
+                // 应用级注册
                 onModuleStarted();
             } else {
                 frameworkExecutorRepository.getSharedExecutor().submit(() -> {
@@ -254,7 +255,7 @@ public class DefaultModuleDeployer extends AbstractDeployer<ModuleModel> impleme
             if (isStarting()) {
                 setStarted();
                 logger.info(getIdentifier() + " has started.");
-                // 启动完成，将触发应用注册
+                //
                 applicationDeployer.notifyModuleChanged(moduleModel, DeployState.STARTED);
             }
         } finally {

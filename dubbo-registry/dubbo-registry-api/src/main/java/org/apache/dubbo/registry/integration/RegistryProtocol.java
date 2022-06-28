@@ -235,7 +235,8 @@ public class RegistryProtocol implements Protocol, ScopeModelAware {
         overrideListeners.put(registryUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
-        //export invoker
+        // export invoker
+        // 服务暴露，开启Tomcat、Netty
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry

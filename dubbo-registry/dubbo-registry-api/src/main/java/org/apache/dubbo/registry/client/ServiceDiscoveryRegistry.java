@@ -199,7 +199,7 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
             Set<String> subscribedServices = serviceNameMapping.getCachedMapping(url);
             try {
                 MappingListener mappingListener = new DefaultMappingListener(url, subscribedServices, listener);
-                // 获取接口所对应的应用名，如果一个应用有两个实例，那么这里也只会得到一个应用名
+                // 获取接口所对应的应用名
                 subscribedServices = serviceNameMapping.getAndListen(this.getUrl(), url, mappingListener);
                 mappingListeners.put(url.getProtocolServiceKey(), mappingListener);
             } catch (Exception e) {
@@ -213,7 +213,7 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
 //                }
                 return;
             }
-            // subscribedServices为当前接口所对应的应用名
+            // subscribedServices为接口所对应的应用名，接下来就会取获取该应用的所有实例
             subscribeURLs(url, listener, subscribedServices);
         } finally {
             mappingLock.unlock();
@@ -294,9 +294,9 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
     }
 
     protected void subscribeURLs(URL url, NotifyListener listener, Set<String> serviceNames) {
-        serviceNames = toTreeSet(serviceNames);
+        serviceNames = toTreeSet(serviceNames); // 这里传进来的要分情况，如果是应用启动过程进行服务引入时，serviceNames就是当前引入接口对应的应用名，如果是应用运行过程中，那就可能是多个应用名，表示注册中心中应用的信息发生了编号，比如增加了应用
         String serviceNamesKey = toStringKeys(serviceNames);
-        String protocolServiceKey = url.getProtocolServiceKey();
+        String protocolServiceKey = url.getProtocolServiceKey(); // 当前引入的服务，接口名+协议，消费者可以指定某个协议
         logger.info(String.format("Trying to subscribe from apps %s for service key %s, ", serviceNamesKey, protocolServiceKey));
 
         // register ServiceInstancesChangedListener
@@ -308,10 +308,11 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
                 serviceInstancesChangedListener = serviceDiscovery.createListener(serviceNames);
                 serviceInstancesChangedListener.setUrl(url);
                 for (String serviceName : serviceNames) {
-                    // 根据应用名，从/dubbo/services/应用名 节点下查出应用实例，实例信息主要包括实例的ip和绑定的端口之一（因为可能绑定了多个端口）
+                    // 根据应用名，从/dubbo/services/应用名 节点下查出所有实例，
                     List<ServiceInstance> serviceInstances = serviceDiscovery.getInstances(serviceName);
                     if (CollectionUtils.isNotEmpty(serviceInstances)) {
-                        // 查到了应用的实例信息之后，就会通过元数据中心或元数据服务找到应用的元数据
+                        // 遍历所有实例，获取服务URL信息
+                        // 得到的所有服务URL信息会放在serviceInstancesChangedListener的serviceUrls属性中
                         serviceInstancesChangedListener.onEvent(new ServiceInstancesChangedEvent(serviceName, serviceInstances));
                     }
                 }
@@ -321,6 +322,7 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
             if (!serviceInstancesChangedListener.isDestroyed()) {
                 serviceInstancesChangedListener.setUrl(url);
                 listener.addServiceListener(serviceInstancesChangedListener);
+                // 过滤得到当前引入服务对应的服务URL，并生成Invoker对象
                 serviceInstancesChangedListener.addListenerAndNotify(protocolServiceKey, listener);
                 serviceDiscovery.addServiceInstancesChangedListener(serviceInstancesChangedListener);
             } else {

@@ -60,6 +60,7 @@ public class ServiceInstanceHostPortCustomizer implements ServiceInstanceCustomi
         }
 
         if (CollectionUtils.isNotEmpty(urls)) {
+            // 优先用dubbo协议对应的ip和port
             String preferredProtocol = applicationModel.getCurrentConfig().getProtocol();
             if (preferredProtocol != null) {
                 for (URL exportedURL : urls) {
@@ -69,7 +70,8 @@ public class ServiceInstanceHostPortCustomizer implements ServiceInstanceCustomi
                         break;
                     }
                 }
-                
+
+                // 如果没有dubbo协议，就取所有服务URL中第一个URL的ip和port
                 if (host == null || port == -1) {
                     logger.warn("The default preferredProtocol \"" + preferredProtocol + "\" is not found, fall back to the strategy that pick the first found protocol. Please try to modify the config of dubbo.application.protocol");
                     URL url = urls.iterator().next();
@@ -77,6 +79,7 @@ public class ServiceInstanceHostPortCustomizer implements ServiceInstanceCustomi
                     port = url.getPort();
                 }
             } else {
+                // 如果没有dubbo协议，就取所有服务URL中第一个URL的ip和port
                 URL url = urls.iterator().next();
                 host = url.getHost();
                 port = url.getPort();

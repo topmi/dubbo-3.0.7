@@ -616,6 +616,7 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
             exportMetadataService();
             if (hasPreparedApplicationInstance.compareAndSet(false, true)) {
                 // register the local ServiceInstance if required
+                // 注册实例
                 registerServiceInstance();
             }
         }
@@ -925,6 +926,7 @@ public class DefaultApplicationDeployer extends AbstractDeployer<ApplicationMode
         for (DeployListener<ApplicationModel> listener : listeners) {
             try {
                 if (listener instanceof ApplicationDeployListener) {
+                    // 会利用ExporterDeployListener来导出元数据服务
                     ((ApplicationDeployListener) listener).onModuleStarted(applicationModel);
                 }
             } catch (Throwable e) {

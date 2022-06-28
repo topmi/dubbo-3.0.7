@@ -78,7 +78,7 @@ public class Connection extends AbstractReferenceCounted {
         this.protocol = ExtensionLoader.getExtensionLoader(WireProtocol.class).getExtension(url.getProtocol());
         this.connectTimeout = url.getPositiveParameter(Constants.CONNECT_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT);
         this.remote = getConnectAddress();
-        // 会去建立连接
+        // 只是创建一个Bootstrap对象，并不会建立Socket连接
         this.bootstrap = create();
     }
 

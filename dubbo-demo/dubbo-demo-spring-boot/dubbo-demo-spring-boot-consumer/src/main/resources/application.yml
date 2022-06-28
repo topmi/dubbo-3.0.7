@@ -16,6 +16,9 @@
 dubbo:
   application:
     name: dubbo-springboot-demo-consumer
+#    parameters:
+#      migration.step: FORCE_APPLICATION
+#      migration.threshold: 2
   protocol:
     name: dubbo
     port: -1

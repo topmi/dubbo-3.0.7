@@ -140,7 +140,7 @@ public class MetadataUtils {
     public static MetadataInfo getRemoteMetadata(String revision, List<ServiceInstance> instances, MetadataReport metadataReport) {
         // 准备获取某个应有的MetadataInfo
 
-        // 随机选择出来一个应用实例
+        // 如果一个revision对应多个实例，则随机选择出来一个应用实例（一般一个revision就对应一个实例）
         ServiceInstance instance = selectInstance(instances);
         String metadataType = ServiceInstanceMetadataUtils.getMetadataStorageType(instance);
         MetadataInfo metadataInfo;
@@ -149,7 +149,7 @@ public class MetadataUtils {
                 logger.debug("Instance " + instance.getAddress() + " is using metadata type " + metadataType);
             }
             if (REMOTE_METADATA_STORAGE_TYPE.equals(metadataType)) {
-                // 从元数据中获取应用元数据
+                // 从元数据中心获取应用元数据
                 metadataInfo = MetadataUtils.getMetadata(revision, instance, metadataReport);
             } else {
                 // 从应用实例上获取应用元数据

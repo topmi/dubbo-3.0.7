@@ -35,31 +35,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ConsumerApplication {
 
-    @DubboReference(loadbalance = "roundrobin")
+    @DubboReference
     private DemoService demoService;
 
-//    @DubboReference
-//    private HelloService helloService;
-
     @GetMapping("/")
-    public String hello(){
+    public String hello() {
 
-        for (int i =0; i<100; i++) {
-            String result = demoService.sayHello("zhouyu");
-            System.out.println(result);
+//        String result = demoService.sayHello("zhouyu");
+//        System.out.println(result);
+//        return "success";
 
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
 
-        return "success";
-
-//        return result;
-
-//        // 服务端流
+        // 服务端流
 //        demoService.sayHelloServerStream("zhouyu", new StreamObserver<String>() {
 //            @Override
 //            public void onNext(String data) {
@@ -77,36 +64,29 @@ public class ConsumerApplication {
 //            }
 //        });
 //
-////         客户端流
-//        StreamObserver<String> streamObserver = demoService.sayHelloStream(new StreamObserver<String>() {
-//            @Override
-//            public void onNext(String data) {
-//                System.out.println("接收到响应数据："+ data);
-//            }
-//
-//            @Override
-//            public void onError(Throwable throwable) {
-//
-//            }
-//
-//            @Override
-//            public void onCompleted() {
-//                System.out.println("接收到响应数据完毕");
-//            }
-//        });
-//
-//        // 发送数据
-//        streamObserver.onNext("request zhouyu hello");
-//
-//        try {
-//            Thread.sleep(10000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//
-//        streamObserver.onNext("request zhouyu world");
-//        streamObserver.onCompleted();
 //        return "success";
+//
+//         客户端流
+        StreamObserver<String> streamObserver = demoService.sayHelloStream(new StreamObserver<String>() {
+            @Override
+            public void onNext(String data) {
+                System.out.println("接收到响应数据："+ data);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+
+            }
+
+            @Override
+            public void onCompleted() {
+                System.out.println("接收到响应数据完毕");
+            }
+        });
+
+        streamObserver.onNext("zhouyu");
+        streamObserver.onCompleted();
+        return "success";
     }
 
     public static void main(String[] args) {

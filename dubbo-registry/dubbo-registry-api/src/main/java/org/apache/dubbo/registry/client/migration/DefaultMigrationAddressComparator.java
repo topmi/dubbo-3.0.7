@@ -42,16 +42,19 @@ public class DefaultMigrationAddressComparator implements MigrationAddressCompar
 
     @Override
     public <T> boolean shouldMigrate(ClusterInvoker<T> newInvoker, ClusterInvoker<T> oldInvoker, MigrationRule rule) {
-        // newInvoker指的是应用级地址，oldInvoker指的是接口级地址
+        // newInvoker指的是应用级Invoker，oldInvoker指的是接口级Invoker
 
         Map<String, Integer> migrationData = serviceMigrationData.computeIfAbsent(oldInvoker.getUrl().getDisplayServiceKey(), _k -> new ConcurrentHashMap<>());
 
+        // 没有应用级Invoker，return false，表示使用接口级Invoker
         if (!newInvoker.hasProxyInvokers()) {
             migrationData.put(OLD_ADDRESS_SIZE, getAddressSize(oldInvoker));
             migrationData.put(NEW_ADDRESS_SIZE, -1);
             logger.info("No " + getInvokerType(newInvoker) + " address available, stop compare.");
             return false;
         }
+
+        // 没有接口级Invoker，return true，表示使用应用级Invoker
         if (!oldInvoker.hasProxyInvokers()) {
             migrationData.put(OLD_ADDRESS_SIZE, -1);
             migrationData.put(NEW_ADDRESS_SIZE, getAddressSize(newInvoker));
@@ -59,10 +62,11 @@ public class DefaultMigrationAddressComparator implements MigrationAddressCompar
             return true;
         }
 
-        // 一个接口对应一个应用，如果该应用有两个实例，如果这两个实例用的都是3.0，那么newAddressSize=2， oldAddressSize=2
-        // 如果一个实例用的是2.7，一个用的是3.0，那么newAddressSize=1，oldAddressSize=2
-        int newAddressSize = getAddressSize(newInvoker);
-        int oldAddressSize = getAddressSize(oldInvoker);
+        // 正常来说这两种级别的Invoker数应该是一样的
+        // 但是应用如果有两个实例，一个实例用的是2.7（只能进行接口级注册），一个用的是3.0（接口级和应用级都进行了注册）
+        // 那么接口级Invoker就会比应用级Invoker多
+        int newAddressSize = getAddressSize(newInvoker); // 应用级Invoker的数量
+        int oldAddressSize = getAddressSize(oldInvoker); // 接口级Invoker的数量
 
         migrationData.put(OLD_ADDRESS_SIZE, oldAddressSize);
         migrationData.put(NEW_ADDRESS_SIZE, newAddressSize);
@@ -72,6 +76,7 @@ public class DefaultMigrationAddressComparator implements MigrationAddressCompar
         if (configuredThreshold != null && configuredThreshold >= 0) {
             rawThreshold = String.valueOf(configuredThreshold);
         }
+        // 先从迁移规则中获取rawThreshold，如果没有配，则获取dubbo.application.migration.threshold配置的值，如果也没有配默认就0
         rawThreshold = StringUtils.isNotEmpty(rawThreshold) ? rawThreshold : ConfigurationUtils.getCachedDynamicProperty(newInvoker.getUrl().getScopeModel(), MIGRATION_THRESHOLD, DEFAULT_THRESHOLD_STRING);
         float threshold;
         try {
@@ -82,15 +87,17 @@ public class DefaultMigrationAddressComparator implements MigrationAddressCompar
         }
 
         logger.info("serviceKey:" + oldInvoker.getUrl().getServiceKey() + " Instance address size " + newAddressSize + ", interface address size " + oldAddressSize + ", threshold " + threshold);
-        // 如果只有newAddressSize，表示provider用的都是3.0版本
+        // 只有应用级Invoker
         if (newAddressSize != 0 && oldAddressSize == 0) {
             return true;
         }
+        // 都没有
         if (newAddressSize == 0 && oldAddressSize == 0) {
             return false;
         }
 
-        // threshold默认为-1，表示一定会返回true，那就会用应用级服务提供者
+        // 既有接口级Invoker，又有应用级Invoker
+        // threshold默认为0，
         if (((float) newAddressSize / (float) oldAddressSize) >= threshold) {
             return true;
         }

@@ -87,6 +87,7 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
 
     public synchronized void register() throws RuntimeException {
 
+        // ServiceInstance表示服务实例信息，比如应用名、实例ip、实例port
         this.serviceInstance = createServiceInstance(this.metadataInfo);
         if (!isValidInstance(this.serviceInstance)) {
             logger.warn("No valid instance found, stop registering instance address to registry.");
@@ -97,6 +98,7 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
         if (revisionUpdated) {
             reportMetadata(this.metadataInfo);
 
+            // 注册应用信息
             doRegister(this.serviceInstance);
         }
     }
@@ -163,7 +165,7 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
             // try to load metadata from remote.
             int triedTimes = 0;
             while (triedTimes < 3) {
-                // 获取应用的MetadataInfo，会随机一个实例进行获取
+                // 获取应用的MetadataInfo
                 metadata = MetadataUtils.getRemoteMetadata(revision, instances, metadataReport);
 
                 if (metadata != MetadataInfo.EMPTY) {// succeeded
@@ -257,7 +259,7 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
         DefaultServiceInstance instance = new DefaultServiceInstance(serviceName, applicationModel);
         instance.setServiceMetadata(metadataInfo);
         setMetadataStorageType(instance, metadataType);
-        // 处理处理DefaultServiceInstance中的metadata
+        // 处理DefaultServiceInstance中的metadata
         ServiceInstanceMetadataUtils.customizeInstance(instance, applicationModel);
         return instance;
     }

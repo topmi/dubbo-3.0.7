@@ -102,7 +102,7 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
     @Override
     protected Result doInvoke(final Invocation invocation) {
 
-        // 检查Socket连接是否可用
+        // 检查Socket连接是否可用，如果不可用并且没有初始化，那就连接服务端创建Socket连接
         if (!connection.isAvailable()) {
             CompletableFuture<AppResponse> future = new CompletableFuture<>();
             RpcException exception = TriRpcStatus.UNAVAILABLE.withDescription(

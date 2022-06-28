@@ -26,10 +26,13 @@ dubbo:
   protocols:
     p1:
       name: dubbo
-      port: 21881
+      port: 20881
     p2:
       name: tri
       port: 20882
+    p3:
+      name: tri
+      port: 50051
 
   registry:
 #    address: nacos://localhost:8848

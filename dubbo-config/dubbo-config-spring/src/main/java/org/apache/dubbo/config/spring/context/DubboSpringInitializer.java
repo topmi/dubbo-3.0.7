@@ -60,6 +60,7 @@ public class DubboSpringInitializer {
         ConfigurableListableBeanFactory beanFactory = findBeanFactory(registry);
 
         // init dubbo context
+        // 注册DubboDeployApplicationListener
         initContext(context, registry, beanFactory);
     }
 
@@ -140,6 +141,7 @@ public class DubboSpringInitializer {
         context.markAsBound();
 
         // register common beans
+        // 注册DubboDeployApplicationListener
         DubboBeanUtils.registerCommonBeans(registry);
     }
 

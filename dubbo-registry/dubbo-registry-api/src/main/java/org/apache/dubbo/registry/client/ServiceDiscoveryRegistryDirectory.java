@@ -105,6 +105,8 @@ public class ServiceDiscoveryRegistryDirectory<T> extends DynamicDirectory<T> {
         } else {
             enableConfigurationListen = false;
         }
+
+        // 订阅并查询
         super.subscribe(url);
     }
 
@@ -148,14 +150,6 @@ public class ServiceDiscoveryRegistryDirectory<T> extends DynamicDirectory<T> {
         // 根据InstanceAddressURL进行refer，生成invoker
         // InstanceAddressURL中有协议、IP、PORT
         refreshOverrideAndInvoker(instanceUrls);
-
-        // 在对某个接口进行服务引入时，到底会生成多少个应用级的Invoker?
-        // 首先找到这个接口所在的服务提供者应用，然后找到应用有多少个实例，然后找到应用的元数据
-        // 看当前接口在该应用下支持多少种协议
-        // 根据某个支持的协议+某个实例的ip+当前协议所绑定的端口，生成一个Invoker
-        // 最终就可以确定当前接口对应多少个应用级Invoker
-        // 所以如果作为服务消费者，如果现在引入了两个接口，并且这两个接口是在同一个服务提供者应用中
-        // 那么这两个接口就可以公用应用级Invoker，因为应用级Invoker只关心协议+IP+PORT
     }
 
     // RefreshOverrideAndInvoker will be executed by registryCenter and configCenter, so it should be synchronized.

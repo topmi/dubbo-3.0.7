@@ -225,6 +225,10 @@ public class ServiceInstanceMetadataUtils {
         ExtensionLoader<ServiceInstanceCustomizer> loader =
                 instance.getOrDefaultApplicationModel().getExtensionLoader(ServiceInstanceCustomizer.class);
         // FIXME, sort customizer before apply
+        // ServiceInstanceMetadataCustomizer: 可以利用InfraAdapter来向ServiceInstance中存入额外的一些key，value
+        // MetadataServiceURLParamsMetadataCustomizer: 无用
+        // ServiceInstanceHostPortCustomizer: 确定实例的ip和port，取dubbo协议对应的ip和port，或者取第一个服务URL对应的ip和port
+        // ProtocolPortsMetadataCustomizer: 一个协议如果对应多个端口，那么只会取其中一个，并保存到ServiceInstance中的endpoint中
         loader.getSupportedExtensionInstances().forEach(customizer -> {
             // customize
             customizer.customize(instance, applicationModel);

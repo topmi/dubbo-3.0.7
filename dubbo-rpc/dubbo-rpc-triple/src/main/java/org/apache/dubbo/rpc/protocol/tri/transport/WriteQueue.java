@@ -68,11 +68,14 @@ public class WriteQueue {
             QueuedCommand cmd;
             int i = 0;
             boolean flushedOnce = false;
+            // 只要队列中有元素就取出来，没有则退出while
             while ((cmd = queue.poll()) != null) {
+                // 把数据帧添加到Http2StreamChannel中，添加并不会立马发送，调用了flush才发送
                 cmd.run(channel);
                 i++;
 
-                // 不停的从队列中获取数据，满128个数据就flush一次
+                // DEQUE_CHUNK_SIZE=128
+                // 连续从队列中取到了128个数据帧就flush一次
                 if (i == DEQUE_CHUNK_SIZE) {
                     i = 0;
                     channel.flush();
@@ -80,14 +83,15 @@ public class WriteQueue {
                 }
             }
 
-            // 如果队列中每数据了，则直接flush
+            // i != 0 表示从队列中取到了数据但是没满128个
+            // 如果i=0，flushedOnce=false也flush一次
             if (i != 0 || !flushedOnce) {
                 channel.flush();
             }
         } finally {
             scheduled.set(false);
 
-            // 如果队列中又有数据了，则继续异步flush
+            // 如果队列中又有数据了，则继续会递归调用flush
             if (!queue.isEmpty()) {
                 scheduleFlush();
             }
