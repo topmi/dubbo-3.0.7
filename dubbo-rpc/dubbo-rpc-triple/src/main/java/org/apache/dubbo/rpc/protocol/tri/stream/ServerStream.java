@@ -284,6 +284,7 @@ public class ServerStream extends AbstractStream {
                 return;
             }
 
+            // Content-Type 必须是 "application/grpc"，因为如果不是这个没法兼容gRPC
             final String contentString = contentType.toString();
             if (!supportContentType(contentString)) {
                 responsePlainTextError(HttpResponseStatus.UNSUPPORTED_MEDIA_TYPE.code(),
@@ -305,10 +306,13 @@ public class ServerStream extends AbstractStream {
                 responseErr(TriRpcStatus.UNIMPLEMENTED.withDescription("Bad path format:" + path));
                 return;
             }
+
+            // 接口名
             String serviceName = parts[1];
+            // 方法名
             String originalMethodName = parts[2];
 
-            // 请求头中设置了version、group，得到对应服务Invoker
+            // 请求头中设置了version，得到对应服务Invoker，后续接收到方法参数后，就可以执行该Invoker对象的invoke()进行方法执行了
             Invoker<?> invoker = getInvoker(headers, serviceName);
             if (invoker == null) {
                 responseErr(
@@ -351,7 +355,6 @@ public class ServerStream extends AbstractStream {
             } else {
                 // 注意，传入进来的executor是SerializingExecutor，但是在构造方法里会再包一层SerializingExecutor
                 // 所以call里的executor为  SerializingExecutor(SerializingExecutor(ThreadPoolExecutor))
-                // 当使用这个call
                 call = new ReflectionServerCall(invoker, ServerStream.this, frameworkModel,
                     acceptEncoding, serviceName, originalMethodName, filters, executor);
             }

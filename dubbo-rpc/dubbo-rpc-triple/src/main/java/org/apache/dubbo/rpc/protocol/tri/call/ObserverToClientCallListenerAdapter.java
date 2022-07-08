@@ -33,7 +33,9 @@ public class ObserverToClientCallListenerAdapter implements ClientCall.Listener 
 
     @Override
     public void onMessage(Object message) {
+        // 接收到一个响应结果，回调StreamObserver
         delegate.onNext(message);
+        // 继续处理下一个响应结果
         if (call.isAutoRequestN()) {
             call.requestN(1);
         }
@@ -50,6 +52,7 @@ public class ObserverToClientCallListenerAdapter implements ClientCall.Listener 
 
     @Override
     public void onStart(ClientCall call) {
+        // 接收到响应头是会执行这个方法
         this.call = call;
         if (call.isAutoRequestN()) {
             call.requestN(1);

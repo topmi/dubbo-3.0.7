@@ -17,27 +17,24 @@
 dubbo:
   application:
     name: dubbo-springboot-demo-provider
-    metadata-type: remote
+#    metadata-type: local
 #    register-mode: instance
-#  protocol:
-#    name: tri
-#    port: 20881
+  protocol:
+    name: tri
+    port: 20880
 
-  protocols:
-    p1:
-      name: dubbo
-      port: 20881
-    p2:
-      name: tri
-      port: 20882
-    p3:
-      name: tri
-      port: 50051
+#  protocols:
+#    p1:
+#      name: dubbo
+#      port: 20881
+#    p2:
+#      name: tri
+#      port: 20882
+#    p3:
+#      name: dubbo
+#      port: 50052
 
   registry:
-#    address: nacos://localhost:8848
-    address: zookeeper://127.0.0.1:2181
-  config-center:
     address: zookeeper://127.0.0.1:2181
   metadata-report:
     address: zookeeper://127.0.0.1:2181

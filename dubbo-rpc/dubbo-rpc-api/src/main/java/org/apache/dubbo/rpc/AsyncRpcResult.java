@@ -188,8 +188,13 @@ public class AsyncRpcResult implements Result {
 
     @Override
     public Result get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+
         if (executor != null && executor instanceof ThreadlessExecutor) {
+            // ThreadlessExecutor这个线程池里面并没有线程，只有一个任务队列
             ThreadlessExecutor threadlessExecutor = (ThreadlessExecutor) executor;
+            // 当前线程调用waitAndDrain()方法，会从任务队列中获取任务，如果没有任务则会阻塞
+            // 要么是UnaryClientCallListener正常接收到结果后，会向线程池中添加任务，从而解阻塞
+            // 要么是DeadlineFuture中的超时任务，发现超时了，也会向线程池中添加任务，从而解阻塞，并且会触发执行timeoutListeners
             threadlessExecutor.waitAndDrain();
         }
         return responseFuture.get(timeout, unit);

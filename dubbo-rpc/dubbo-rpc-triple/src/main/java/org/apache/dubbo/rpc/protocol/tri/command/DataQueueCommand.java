@@ -47,9 +47,13 @@ public class DataQueueCommand extends QueuedCommand {
             ctx.write(new DefaultHttp2DataFrame(endStream), promise);
         } else {
             ByteBuf buf = ctx.alloc().buffer();
+            // 第一个字节记录请求体是否被压缩
             buf.writeByte(compressFlag);
+            // 后四个字节记录请求体的长度
             buf.writeInt(data.length);
+            // 真实的数据
             buf.writeBytes(data);
+            // 发送
             ctx.write(new DefaultHttp2DataFrame(buf, endStream), promise);
         }
     }

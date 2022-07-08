@@ -143,6 +143,7 @@ public class MetadataInfo implements Serializable {
         List<MetadataParamsFilter> filters = loader.getActivateExtension(url, "params-filter");
         // generate service level metadata
         ServiceInfo serviceInfo = new ServiceInfo(url, filters);
+        // serviceInfo.getMatchKey()，就是接口名：协议
         this.services.put(serviceInfo.getMatchKey(), serviceInfo);
         // extract common instance level params
         extractInstanceParams(url, filters);

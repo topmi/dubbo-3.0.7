@@ -30,7 +30,7 @@ public interface DemoService {
     }
 
     // CLIENT_STREAM / BI_STREAM
-    default StreamObserver<String> sayHelloStream(StreamObserver<String> response) {
+    default StreamObserver<String> sayHelloBiStream(StreamObserver<String> response) {
         return response;
     }
 

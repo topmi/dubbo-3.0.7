@@ -359,6 +359,8 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             path = interfaceName;
         }
         doExportUrls();
+
+        // 存储接口名：应用名的映射关系
         exported();
     }
 
@@ -643,7 +645,10 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrl(URL url, boolean withMetaData) {
+        // 根据接口、当前实现类对象、服务URL生成一个Invoker
         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, url);
+
+
         if (withMetaData) {
             invoker = new DelegateProviderMetaDataInvoker(invoker, this);
         }
@@ -784,6 +789,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             if (portToBind <= 0) {
                 portToBind = getRandomPort(name);
                 if (portToBind == null || portToBind < 0) {
+                    // 当port为-1时，会对defaultPort+1，寻找一个可用端口
                     portToBind = getAvailablePort(defaultPort);
                     putRandomPort(name, portToBind);
                 }

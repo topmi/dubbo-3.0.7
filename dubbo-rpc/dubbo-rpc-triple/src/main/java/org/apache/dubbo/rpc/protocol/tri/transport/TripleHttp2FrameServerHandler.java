@@ -122,8 +122,9 @@ public class TripleHttp2FrameServerHandler extends ChannelDuplexHandler {
         // 此处ctx.channel()拿到的是子Channel, 对应的是Http2StreamChannel，表示流
         ServerStream serverStream = new ServerStream(ctx.channel(), frameworkModel, executor,
             pathResolver, acceptEncoding, filters);
-        // 一个子channel，也就是一个HTTP2流，对应一个ServerStream
         ctx.channel().attr(SERVER_STREAM_KEY).set(serverStream);
+
+        // 调用
         serverStream.transportObserver.onHeader(msg.headers(), msg.isEndStream());
     }
 

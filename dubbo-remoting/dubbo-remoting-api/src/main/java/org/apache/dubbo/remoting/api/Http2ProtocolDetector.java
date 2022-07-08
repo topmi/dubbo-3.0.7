@@ -28,7 +28,10 @@ public class Http2ProtocolDetector implements ProtocolDetector {
 
     @Override
     public Result detect(ChannelHandlerContext ctx, ByteBuf in) {
-        // clientPrefaceString表示连接前言，表示要使用HTTP2协议
+        // clientPrefaceString表示连接前言，
+        //如何要建立的是一个HTTP2连接，那么在建立完Socket连接后，
+        //客户端会发送一个连接前言，也就是一串字节（对应的字符串为：“PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n”），给到服务端，服务端从而知道要建立的是一个HTTP2的连接
+        // http2规范文档：https://www.rfc-editor.org/rfc/rfc7540.txt
 
         int prefaceLen = clientPrefaceString.readableBytes();
         int bytesRead = min(in.readableBytes(), prefaceLen);

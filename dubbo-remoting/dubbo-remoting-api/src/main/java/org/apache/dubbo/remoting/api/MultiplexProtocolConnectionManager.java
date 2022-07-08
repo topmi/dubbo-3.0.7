@@ -36,6 +36,7 @@ public class MultiplexProtocolConnectionManager implements ConnectionManager {
 
     @Override
     public Connection connect(URL url) {
+        // 协议相同的URL将对应同一个ConnectionManager
         final ConnectionManager manager = protocols.computeIfAbsent(url.getProtocol(), this::createSingleProtocolConnectionManager);
         return manager.connect(url);
     }

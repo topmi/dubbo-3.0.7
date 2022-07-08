@@ -91,6 +91,7 @@ public class TripleProtocol extends AbstractProtocol {
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         URL url = invoker.getUrl();
         checkProtobufVersion(url);
+        // 本地注册--->实例类
         String key = serviceKey(url);
 
         // 服务导出器，用来卸载服务时做一些善后处理
@@ -113,7 +114,7 @@ public class TripleProtocol extends AbstractProtocol {
 
         invokers.add(invoker);
 
-        pathResolver.add(url.getServiceKey(), invoker);
+        pathResolver.add(url.getServiceKey(), invoker); // url 20882
         pathResolver.add(url.getServiceModel().getServiceModel().getInterfaceName(), invoker);
 
         // set service status

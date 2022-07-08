@@ -93,7 +93,7 @@ public class ReflectionServerCall extends ServerCall {
             methodDescriptor = ServiceDescriptorInternalCache.echoService().getMethods(methodName)
                 .get(0);
         } else {
-            methodDescriptors = serviceDescriptor.getMethods(methodName);
+            methodDescriptors = serviceDescriptor.getMethods(methodName); // serviceDescriptor表示服务描述器
             // try lower-case method
             if (CollectionUtils.isEmpty(methodDescriptors)) {
                 final String lowerMethod =
@@ -112,6 +112,7 @@ public class ReflectionServerCall extends ServerCall {
             // generated unary method ,use unary type
             // Response foo(Request)
             // void foo(Request,StreamObserver<Response>)
+            // 根据方法名找到了两个方法，methodDescriptor最终记录的是普通方法
             if (methodDescriptors.size() == 2) {
                 if (methodDescriptors.get(1).getRpcType() == RpcType.SERVER_STREAM) {
                     methodDescriptor = methodDescriptors.get(0);
@@ -216,6 +217,8 @@ public class ReflectionServerCall extends ServerCall {
             if (closed) {
                 return;
             }
+
+            // 这里会确定当前调用的方法的类型，UNARY、SERVER_STREAM、BI_STREAM
             listener = ReflectionServerCall.this.startInternalCall(invocation,
                 methodDescriptor, invoker);
             if (listener == null) {

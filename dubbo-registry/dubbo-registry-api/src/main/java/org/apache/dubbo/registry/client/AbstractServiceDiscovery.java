@@ -94,11 +94,15 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
             return;
         }
 
+        // 这里会生成实例编号revision
         boolean revisionUpdated = calOrUpdateInstanceRevision(this.serviceInstance);
+
+        // 实例编号有变化，就代表实例信息有变化
         if (revisionUpdated) {
+            // 把metadataInfo存入元数据中心
             reportMetadata(this.metadataInfo);
 
-            // 注册应用信息
+            // 把实例信息存入注册中心
             doRegister(this.serviceInstance);
         }
     }

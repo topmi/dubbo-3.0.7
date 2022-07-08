@@ -303,6 +303,7 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
         Lock appSubscriptionLock = getAppSubscription(serviceNamesKey);
         try {
             appSubscriptionLock.lock();
+            // 一个应用对应一个ServiceInstancesChangedListener
             ServiceInstancesChangedListener serviceInstancesChangedListener = serviceListeners.get(serviceNamesKey);
             if (serviceInstancesChangedListener == null) {
                 serviceInstancesChangedListener = serviceDiscovery.createListener(serviceNames);
@@ -311,8 +312,7 @@ public class ServiceDiscoveryRegistry extends FailbackRegistry {
                     // 根据应用名，从/dubbo/services/应用名 节点下查出所有实例，
                     List<ServiceInstance> serviceInstances = serviceDiscovery.getInstances(serviceName);
                     if (CollectionUtils.isNotEmpty(serviceInstances)) {
-                        // 遍历所有实例，获取服务URL信息
-                        // 得到的所有服务URL信息会放在serviceInstancesChangedListener的serviceUrls属性中
+                        // 该应用所有实例上的所有服务URL信息会放在serviceInstancesChangedListener的serviceUrls属性中
                         serviceInstancesChangedListener.onEvent(new ServiceInstancesChangedEvent(serviceName, serviceInstances));
                     }
                 }

@@ -73,16 +73,21 @@ public class ReflectionMethodDescriptor implements MethodDescriptor {
         if (generic) {
             return RpcType.UNARY;
         }
+        // 方法参数个数超过两个
         if (parameterClasses.length > 2) {
             return RpcType.UNARY;
         }
+        // 方法只有一个参数，并且参数类型是StreamObserver，并且返回类型也是StreamObserver
         if (parameterClasses.length == 1 && isStreamType(parameterClasses[0]) && isStreamType(returnClass)) {
             return RpcType.BI_STREAM;
         }
+        // 方法有两个参数，第一个参数类型不是StreamObserver，并且第二参数类型是StreamObserver，并且返回void
         if (parameterClasses.length == 2 && !isStreamType(parameterClasses[0]) && isStreamType(
             parameterClasses[1]) && returnClass.getName().equals(void.class.getName())) {
             return RpcType.SERVER_STREAM;
         }
+
+        // 除了以上情况，只有参数中有StreamObserver类型的参数，或者返回类型是StreamObserver，就报错
         if (Arrays.stream(parameterClasses).anyMatch(this::isStreamType) || isStreamType(returnClass)) {
             throw new IllegalStateException(
                 "Bad stream method signature. method(" + methodName + ":" + paramDesc + ")");

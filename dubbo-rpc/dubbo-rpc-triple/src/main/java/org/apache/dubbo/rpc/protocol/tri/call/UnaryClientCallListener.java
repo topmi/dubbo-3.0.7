@@ -46,12 +46,15 @@ public class UnaryClientCallListener implements ClientCall.Listener {
         } else {
             result.setException(status.asException());
         }
+        // 触发DeadlineFuture完毕，解开TripleInvoker的invoke方法中的同步阻塞
         future.received(status, result);
     }
 
     @Override
     public void onStart(ClientCall call) {
+        // 接收到响应头后，给DeadlineFuture添加一个TimeoutListener，如果后面超时了，则会回调这个listener，告诉服务端这边超时了，取消Stream
         future.addTimeoutListener(() -> call.cancel("client timeout", null));
+        // requestN
         call.requestN(2);
     }
 }

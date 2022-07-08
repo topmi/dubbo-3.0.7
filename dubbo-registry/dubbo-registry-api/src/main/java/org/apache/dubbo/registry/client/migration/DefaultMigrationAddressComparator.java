@@ -65,8 +65,8 @@ public class DefaultMigrationAddressComparator implements MigrationAddressCompar
         // 正常来说这两种级别的Invoker数应该是一样的
         // 但是应用如果有两个实例，一个实例用的是2.7（只能进行接口级注册），一个用的是3.0（接口级和应用级都进行了注册）
         // 那么接口级Invoker就会比应用级Invoker多
-        int newAddressSize = getAddressSize(newInvoker); // 应用级Invoker的数量
-        int oldAddressSize = getAddressSize(oldInvoker); // 接口级Invoker的数量
+        int newAddressSize = getAddressSize(newInvoker); // 应用级Invoker的数量  tri dubbo rest
+        int oldAddressSize = getAddressSize(oldInvoker); // 接口级Invoker的数量 rest dubbo
 
         migrationData.put(OLD_ADDRESS_SIZE, oldAddressSize);
         migrationData.put(NEW_ADDRESS_SIZE, newAddressSize);

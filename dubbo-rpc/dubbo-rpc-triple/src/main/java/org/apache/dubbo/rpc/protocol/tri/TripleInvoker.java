@@ -101,7 +101,6 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
 
     @Override
     protected Result doInvoke(final Invocation invocation) {
-
         // 检查Socket连接是否可用，如果不可用并且没有初始化，那就连接服务端创建Socket连接
         if (!connection.isAvailable()) {
             CompletableFuture<AppResponse> future = new CompletableFuture<>();
@@ -114,6 +113,8 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
 
         ConsumerModel consumerModel = (ConsumerModel) (invocation.getServiceModel() != null
             ? invocation.getServiceModel() : getUrl().getServiceModel());
+
+        // 拿到服务接口信息和当前调用的方法信息
         ServiceDescriptor serviceDescriptor = consumerModel.getServiceModel();
         final MethodDescriptor methodDescriptor = serviceDescriptor.getMethod(
             invocation.getMethodName(),
@@ -156,6 +157,7 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
 
     AsyncRpcResult invokeServerStream(MethodDescriptor methodDescriptor, Invocation invocation,
         ClientCall call) {
+
         RequestMetadata request = createRequest(methodDescriptor, invocation, null);
 
         // 调用的服务如果是服务端流，那第一个参数是请求参数，第二个参数是StreamObserver
@@ -167,29 +169,39 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
         requestObserver.onNext(invocation.getArguments()[0]);
         requestObserver.onCompleted();
 
+        // 直接返回一个已经完成了的CompletableFuture，外层invoke阻塞的地方将直接通过，异步的效果
         return new AsyncRpcResult(CompletableFuture.completedFuture(new AppResponse()), invocation);
     }
 
     AsyncRpcResult invokeBiOrClientStream(MethodDescriptor methodDescriptor, Invocation invocation,
         ClientCall call) {
         final AsyncRpcResult result;
+
         RequestMetadata request = createRequest(methodDescriptor, invocation, null);
+
         StreamObserver<Object> responseObserver = (StreamObserver<Object>) invocation.getArguments()[0];
+
+        // streamCall方法中就会创建一个Stream，并且返回一个StreamObserver对象
+        // 可以利用这个requestObserver来向Stream中发送数据
+        // responseObserver将绑定到ClientCall.Listener上，ClientCall.Listener是用来接收响应数据的
         final StreamObserver<Object> requestObserver = streamCall(call, request, responseObserver);
+
+        // 也是直接返回一个已经完成的CompletableFuture，异步的效果，包含了requestObserver作为方法的返回值
         result = new AsyncRpcResult(
             CompletableFuture.completedFuture(new AppResponse(requestObserver)), invocation);
         return result;
     }
 
-    StreamObserver<Object> streamCall(ClientCall call,
-        RequestMetadata metadata,
-        StreamObserver<Object> responseObserver) {
+    StreamObserver<Object> streamCall(ClientCall call, RequestMetadata metadata,
+                                      StreamObserver<Object> responseObserver) {
+
         if (responseObserver instanceof CancelableStreamObserver) {
             final CancellationContext context = new CancellationContext();
             ((CancelableStreamObserver<Object>) responseObserver).setCancellationContext(context);
             context.addListener(context1 -> call.cancel("Canceled by app", null));
         }
-        // 把响应StreamObserver包装成ClientCall.Listener，用来处理响应数据
+
+        // 将responseObserver封装为ClientCall.Listener
         ObserverToClientCallListenerAdapter listener = new ObserverToClientCallListenerAdapter(
             responseObserver);
 
@@ -204,17 +216,18 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
         invocation.setAttachment(TIMEOUT_KEY, timeout);
         final AsyncRpcResult result;
 
+        // newFuture()方法中会开启了一个延迟任务（延迟的时间就是timeout），到时间后就会检查DeadlineFuture是否完成
         DeadlineFuture future = DeadlineFuture.newFuture(getUrl().getPath(),
             methodDescriptor.getMethodName(), getUrl().getAddress(), timeout, callbackExecutor);
+
         final Object pureArgument;
 
-        // 调用的方法有两个参数，并且第二个参数的类型是StreamObserver
+        //  Unary模式下不会出现这种情况，这里代码有点多余
         if (methodDescriptor.getParameterClasses().length == 2
-            && methodDescriptor.getParameterClasses()[1].isAssignableFrom(
-            StreamObserver.class)) {
+            && methodDescriptor.getParameterClasses()[1].isAssignableFrom(StreamObserver.class)) {
+
             StreamObserver<Object> observer = (StreamObserver<Object>) invocation.getArguments()[1];
 
-            // 当future完成后，回调StreamObserver中的onNext()方法
             future.whenComplete((r, t) -> {
                 if (t != null) {
                     observer.onError(t);
@@ -228,7 +241,6 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
                 observer.onCompleted();
             });
 
-            // 方法入参
             pureArgument = invocation.getArguments()[0];
             result = new AsyncRpcResult(CompletableFuture.completedFuture(new AppResponse()),
                 invocation);
@@ -238,6 +250,7 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
             } else {
                 pureArgument = invocation.getArguments();
             }
+            // 直接构造一个AsyncRpcResult并最终返回，在外层的invoke()中会进行阻塞（直到超时，或者获取接收到了响应）
             result = new AsyncRpcResult(future, invocation);
             result.setExecutor(callbackExecutor);
             FutureContext.getContext().setCompatibleFuture(future);
@@ -246,12 +259,14 @@ public class TripleInvoker<T> extends AbstractInvoker<T> {
         // UnaryClientCallListener接收到响应数据后，会把响应数据AppResponse设置到future中，并触发future的complete
         ClientCall.Listener callListener = new UnaryClientCallListener(future);
 
-        // 请求原数据，对应的就是Http2HeadersFrame
+        // 请求元数据，表示调用的哪个接口，version，timeout，调用的哪个方法
+        // 会利用它来构造请求头
         RequestMetadata request = createRequest(methodDescriptor, invocation, timeout);
 
+        // 创建一个Stream
         final StreamObserver<Object> requestObserver = call.start(request, callListener);
 
-        // 发送入参，如果请求头没有发送则会发送请求头
+        // 方法参数
         requestObserver.onNext(pureArgument);
         requestObserver.onCompleted();
         return result;

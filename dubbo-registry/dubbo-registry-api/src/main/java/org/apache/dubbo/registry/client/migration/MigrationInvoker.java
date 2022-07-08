@@ -244,9 +244,9 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
     public void migrateToApplicationFirstInvoker(MigrationRule newRule) {
         CountDownLatch latch = new CountDownLatch(0);
         // 接口级ClusterInvoker
-        refreshInterfaceInvoker(latch);
+        refreshInterfaceInvoker(latch); // 2.7 Invoker
         // 应用级ClusterInvoker
-        refreshServiceDiscoveryInvoker(latch);
+        refreshServiceDiscoveryInvoker(latch); // 3.0 Invoker
 
         // directly calculate preferred invoker, will not wait until address notify
         // calculation will re-occurred when address notify later
@@ -287,6 +287,7 @@ public class MigrationInvoker<T> implements MigrationClusterInvoker<T> {
                     return invoker.invoke(invocation);
                 }
             }
+
             return currentAvailableInvoker.invoke(invocation);
         }
 

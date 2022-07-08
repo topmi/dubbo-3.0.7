@@ -29,7 +29,8 @@ public class TriplePathResolver implements PathResolver {
 
     @Override
     public void add(String path, Invoker<?> invoker) {
-        path2Invoker.put(path, invoker);
+        // 本地注册
+        path2Invoker.put(path, invoker);  // 实例类对象-->Invoker
     }
 
     @Override

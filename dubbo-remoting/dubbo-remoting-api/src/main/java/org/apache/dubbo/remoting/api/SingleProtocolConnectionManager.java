@@ -33,6 +33,7 @@ public class SingleProtocolConnectionManager implements ConnectionManager {
         if (url == null) {
             throw new IllegalArgumentException("url == null");
         }
+        // 不同的address对应不同的Connection对象
         return connections.compute(url.getAddress(), (address, conn) -> {
             if (conn == null) {
                 final Connection created = new Connection(url);

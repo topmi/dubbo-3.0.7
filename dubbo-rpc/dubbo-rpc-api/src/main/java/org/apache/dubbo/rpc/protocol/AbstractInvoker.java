@@ -179,9 +179,11 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
         prepareInvocation(invocation);
 
         // do invoke rpc invocation and return async result
+        // 异步
         AsyncRpcResult asyncResult = doInvokeAndReturn(invocation);
 
         // wait rpc result if sync
+        // 如果需要同步就阻塞
         waitForResultIfSync(asyncResult, invocation);
 
         return asyncResult;
@@ -259,6 +261,7 @@ public abstract class AbstractInvoker<T> implements Invoker<T> {
              * must call {@link java.util.concurrent.CompletableFuture#get(long, TimeUnit)} because
              * {@link java.util.concurrent.CompletableFuture#get()} was proved to have serious performance drop.
              */
+            // 调用CompletableFuture进行阻塞
             Object timeout = invocation.getObjectAttachment(TIMEOUT_KEY);
             if (timeout instanceof Integer) {
                 asyncResult.get((Integer) timeout, TimeUnit.MILLISECONDS);

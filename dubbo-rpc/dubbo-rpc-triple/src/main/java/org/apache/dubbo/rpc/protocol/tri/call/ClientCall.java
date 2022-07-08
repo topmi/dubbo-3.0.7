@@ -76,24 +76,28 @@ public class ClientCall {
             stream.sendHeader(requestMetadata.toHeaders());
         }
 
+        // 发送请求体
         final byte[] data;
         try {
-            // 把要发送的message进行序列化，得到字节
+            // 把要发送的message进行序列化，得到字节数组
             data = requestMetadata.packableMethod.packRequest(message);
 
-            // 压缩数据
+            // 压缩数据，功能还需要完善
             int compressed =
                 Identity.MESSAGE_ENCODING.equals(requestMetadata.compressor.getMessageEncoding())
                     ? 0 : 1;
             final byte[] compress = requestMetadata.compressor.compress(data);
 
-            // 发送数据
+            // 发送数据，发送的是请求体，在请求体的最开始最记录当前请求体是否被压缩，压缩只会的数据长度是多少
             stream.writeMessage(compress, compressed);
         } catch (Throwable t) {
             LOGGER.error(String.format("Serialize triple request failed, service=%s method=%s",
                 requestMetadata.service,
                 requestMetadata.method), t);
+
+            // 序列化失败，则取消Stream
             cancel("Serialize request failed", t);
+            // 会回调onError方法
             listener.onClose(TriRpcStatus.INTERNAL.withDescription("Serialize request failed")
                 .withCause(t), null);
         }
@@ -122,9 +126,8 @@ public class ClientCall {
         ClientCall.Listener responseListener) {
         this.requestMetadata = metadata;
         this.listener = responseListener;
-        // 构造
-        this.stream = new ClientStream(frameworkModel, executor, connection.getChannel(),
-            new ClientStreamListenerImpl(responseListener, metadata.packableMethod));
+        // 构造一个Stream
+        this.stream = new ClientStream(frameworkModel, executor, connection.getChannel(), new ClientStreamListenerImpl(responseListener, metadata.packableMethod));
         return new ClientCallToObserverAdapter<>(this);
     }
 
@@ -179,6 +182,7 @@ public class ClientCall {
 
         @Override
         public void onStart() {
+            // 接收到响应头
             listener.onStart(ClientCall.this);
         }
 
@@ -192,6 +196,7 @@ public class ClientCall {
                 return;
             }
             try {
+                // 反序列得到对象
                 final Object unpacked = packableMethod.parseResponse(message);
                 listener.onMessage(unpacked);
             } catch (IOException | ClassNotFoundException e) {
@@ -212,6 +217,7 @@ public class ClientCall {
                 detailStatus = status;
             }
             try {
+                // 响应体接收完毕
                 listener.onClose(detailStatus, StreamUtils.toAttachments(attachments));
             } catch (Throwable t) {
                 cancelByErr(

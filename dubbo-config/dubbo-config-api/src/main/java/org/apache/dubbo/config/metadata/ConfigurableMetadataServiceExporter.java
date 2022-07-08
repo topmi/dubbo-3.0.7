@@ -92,13 +92,16 @@ public class ConfigurableMetadataServiceExporter {
 
     private ProtocolConfig generateMetadataProtocol() {
         // protocol always defaults to dubbo if not specified
+        // dubbo.application.metadata-service-protocol配置元数据服务的协议，默认为dubbo
         String specifiedProtocol = getSpecifiedProtocol();
         // port can not being determined here if not specified
+        // dubbo.application.metadata-service-port配置元数据服务的端口
         Integer port = getSpecifiedPort();
 
         ProtocolConfig protocolConfig = new ProtocolConfig();
         protocolConfig.setName(specifiedProtocol);
 
+        // 如果没有指定，用指定协议的默认的端口
         if (port == null || port < -1) {
             try {
                 if (logger.isInfoEnabled()) {

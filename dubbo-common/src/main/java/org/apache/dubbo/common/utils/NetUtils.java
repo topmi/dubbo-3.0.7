@@ -105,6 +105,7 @@ public class NetUtils {
          if (port < MIN_PORT) {
             return MIN_PORT;
         }
+         // 看哪个端口可以用
         for (int i = port; i < MAX_PORT; i++) {
             if (USED_PORT.get(i)) {
                 continue;

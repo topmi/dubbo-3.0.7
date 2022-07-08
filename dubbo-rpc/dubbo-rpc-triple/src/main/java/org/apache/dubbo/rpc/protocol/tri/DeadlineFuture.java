@@ -54,6 +54,8 @@ public class DeadlineFuture extends CompletableFuture<AppResponse> {
         this.methodName = methodName;
         this.address = address;
         this.timeout = timeout;
+        // 使用HashedWheelTimer来定时执行TimeoutCheckTask
+        // TimeoutCheckTask是用检查当前DeadlineFuture是否超时的
         TimeoutCheckTask timeoutCheckTask = new TimeoutCheckTask();
         this.timeoutTask = TIME_OUT_TIMER.get()
             .newTimeout(timeoutCheckTask, timeout, TimeUnit.MILLISECONDS);
@@ -92,7 +94,9 @@ public class DeadlineFuture extends CompletableFuture<AppResponse> {
         } else {
             doReceived(status, appResponse);
         }
-    }    private static final GlobalResourceInitializer<Timer> TIME_OUT_TIMER = new GlobalResourceInitializer<>(
+    }
+
+    private static final GlobalResourceInitializer<Timer> TIME_OUT_TIMER = new GlobalResourceInitializer<>(
         () -> new HashedWheelTimer(new NamedThreadFactory("dubbo-future-timeout", true), 30,
             TimeUnit.MILLISECONDS), DeadlineFuture::destroy);
 
@@ -130,6 +134,7 @@ public class DeadlineFuture extends CompletableFuture<AppResponse> {
         if (status.isOk()) {
             this.complete(appResponse);
         } else {
+            // 异常结束
             this.completeExceptionally(
                 status.appendDescription("RemoteAddress:" + address).asException());
         }

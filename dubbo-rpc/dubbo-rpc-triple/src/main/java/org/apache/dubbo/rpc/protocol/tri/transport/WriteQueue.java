@@ -55,6 +55,7 @@ public class WriteQueue {
     public void scheduleFlush() {
         if (scheduled.compareAndSet(false, true)) {
             // EventLoop是一个线程池，类型为ExecutorService
+            // 利用一个线程来执行flush，也就是异步发送
             channel.eventLoop().execute(this::flush);
         }
     }

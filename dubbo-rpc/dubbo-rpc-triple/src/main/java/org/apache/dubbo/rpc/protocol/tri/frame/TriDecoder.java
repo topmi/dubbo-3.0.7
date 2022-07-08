@@ -26,6 +26,7 @@ import io.netty.buffer.Unpooled;
 
 public class TriDecoder implements Deframer {
 
+    // 5个字节，第1个字节表示压缩标记位，后4个字节表示数据长度
     private static final int HEADER_LENGTH = 5;
     private static final int COMPRESSED_FLAG_MASK = 1;
     private static final int RESERVED_MASK = 0xFE;
@@ -47,7 +48,7 @@ public class TriDecoder implements Deframer {
         this.listener = listener;
     }
 
-    // 把接收到的ByteBuf数据转发给Listener
+
     @Override
     public void deframe(ByteBuf data) {
         if (closing || closed) {
@@ -55,7 +56,7 @@ public class TriDecoder implements Deframer {
             return;
         }
 
-        // 累加器 把ByteBuf合并起来
+        // 把接收到的字节数据添加到accumulate中
         accumulate.addComponent(true, data);
         deliver();
     }
@@ -74,20 +75,30 @@ public class TriDecoder implements Deframer {
     private void deliver() {
         // We can have reentrancy here when using a direct executor, triggered by calls to
         // request more messages. This is safe as we simply loop until pendingDelivers = 0
+
+        // 接到请求头，并解析完请求头之后就会调用这个方法
+        // 接收到请求体，把数据添加到accumulate之后，也会调用这个方法
+        // 这两个步骤是异步，所以可能解析完请求头后，请求体数据已经来了，也可能没来
+
+        // 如果已经在处理响应体了，就直接return
         if (inDelivery) {
             return;
         }
         inDelivery = true;
         try {
             // Process the uncompressed bytes.
+            // pendingDeliveries表示会循环几次，等于2就会循环两次
+            // 当前循环的前提是需要的字节数已经够了
             while (pendingDeliveries > 0 && hasEnoughBytes()) {
                 switch (state) {
                     case HEADER:
-                        // 获取
+                        // 解析压缩标记，需要5个字节
+                        // 解析完压缩标记后，state会变为PAYLOAD
                         processHeader();
                         break;
                     case PAYLOAD:
                         // Read the body and deliver the message.
+                        // 处理
                         processBody();
 
                         // Since we've delivered a message, decrement the number of pending
@@ -111,8 +122,8 @@ public class TriDecoder implements Deframer {
         }
     }
 
+    // 指定长度（字节数）是否够了
     private boolean hasEnoughBytes() {
-        // 需要的字节长度-可读的字节长度 <=0，则表示满足需要了
         return requiredLength - accumulate.readableBytes() <= 0;
     }
 
@@ -121,12 +132,14 @@ public class TriDecoder implements Deframer {
      * frame length.
      */
     private void processHeader() {
+        // 读1个字节，看压缩标记位，0或1
         int type = accumulate.readUnsignedByte();
         if ((type & RESERVED_MASK) != 0) {
             throw new RpcException("gRPC frame header malformed: reserved bits not zero");
         }
         compressedFlag = (type & COMPRESSED_FLAG_MASK) != 0;
 
+        // 读4个字节，表示请求体字节数
         requiredLength = accumulate.readInt();
 
         // Continue reading the frame body.
@@ -140,11 +153,12 @@ public class TriDecoder implements Deframer {
         // There is no reliable way to get the uncompressed size per message when it's compressed,
         // because the uncompressed bytes are provided through an InputStream whose total size is
         // unknown until all bytes are read, and we don't know when it happens.
-        // 如果数据被压缩了，那就解压数据
+        // 如果压缩了，就会利用decompressor进行解压
         byte[] stream = compressedFlag ? getCompressedBody() : getUncompressedBody();
 
         listener.onRawMessage(stream);
 
+        // 改好状态，以便处理下一个响应头
         // Done with this frame, begin processing the next header.
         state = GrpcDecodeState.HEADER;
         requiredLength = HEADER_LENGTH;

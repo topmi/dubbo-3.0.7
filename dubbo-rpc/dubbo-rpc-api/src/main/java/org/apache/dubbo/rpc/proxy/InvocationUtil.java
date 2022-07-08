@@ -85,6 +85,7 @@ public class InvocationUtil {
                 }
             }
         }
+        // 先得到AsyncRpcResult，recreate中会拿出具体的结果对象
         return invoker.invoke(rpcInvocation).recreate();
     }
 }

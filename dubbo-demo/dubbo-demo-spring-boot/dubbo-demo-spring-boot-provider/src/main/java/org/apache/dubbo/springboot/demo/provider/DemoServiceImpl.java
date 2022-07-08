@@ -28,44 +28,49 @@ import java.util.concurrent.CompletableFuture;
 @DubboService
 public class DemoServiceImpl implements DemoService {
 
-    // UNARY
     @Override
     public String sayHello(String name) {
-        return "Hello " + name + RpcContext.getServerContext().getLocalPort();
+        return "Hello " + name + RpcContext.getServerContext().getUrl().getPort();
     }
+
 
     // SERVER_STREAM
     @Override
     public void sayHelloServerStream(String name, StreamObserver<String> response) {
+
         response.onNext(name + " hello");
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         response.onNext(name + " world");
+
         response.onCompleted();
+
     }
 
-//    // CLIENT_STREAM / BI_STREAM
-//    @Override
-//    public StreamObserver<String> sayHelloStream(StreamObserver<String> response) {
-//        return new StreamObserver<String>() {
-//            @Override
-//            public void onNext(String name) {
-//                response.onNext(name + " hello");
-//                try {
-//                    Thread.sleep(3000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//                response.onNext(name + " world");
-//            }
-//
-//            @Override
-//            public void onError(Throwable throwable) {
-//            }
-//
-//            @Override
-//            public void onCompleted() {
-//                System.out.println("completed");
-//            }
-//        };
-//    }
+    // CLIENT_STREAM / BI_STREAM
+    @Override
+    public StreamObserver<String> sayHelloBiStream(StreamObserver<String> response) {
+        return new StreamObserver<String>() {
+            @Override
+            public void onNext(String name) {
+                System.out.println(name);
+                response.onNext("hello: "+name);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+            }
+
+            @Override
+            public void onCompleted() {
+                System.out.println("completed");
+            }
+        };
+    }
 
 }

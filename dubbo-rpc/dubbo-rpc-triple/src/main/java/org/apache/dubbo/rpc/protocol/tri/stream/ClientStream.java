@@ -74,6 +74,7 @@ public class ClientStream extends AbstractStream implements Stream {
         ClientStreamListener listener) {
         super(executor, frameworkModel);
         this.listener = listener;
+        // parent是Socket连接
         this.writeQueue = createWriteQueue(parent);
     }
 
@@ -89,7 +90,11 @@ public class ClientStream extends AbstractStream implements Stream {
         final Http2StreamChannel channel = future.getNow();
         channel.pipeline()
             .addLast(new TripleCommandOutBoundHandler())
+            // TripleHttp2ClientResponseHandler是用来接收响应的
             .addLast(new TripleHttp2ClientResponseHandler(createTransportListener()));
+
+        // 基于Http2StreamChannel创建一个WriteQueue
+        // 后续把要发送的数据，添加到WriteQueue中就能发送出去了
         return new WriteQueue(channel);
     }
 
@@ -125,7 +130,7 @@ public class ClientStream extends AbstractStream implements Stream {
     @Override
     public void writeMessage(byte[] message, int compressed) {
         try {
-            // 表示HTTP2中的Http2DataFrame
+            // 表示HTTP2中的Http2DataFrame，用的就是gRPC发送请求体的格式
             final DataQueueCommand cmd = DataQueueCommand.createGrpcCommand(message, false,
                 compressed);
             this.writeQueue.enqueue(cmd);
@@ -205,6 +210,7 @@ public class ClientStream extends AbstractStream implements Stream {
             Integer httpStatus =
                 headers.status() == null ? null : Integer.parseInt(headers.status().toString());
 
+            // 检查HTTP状态码
             if (httpStatus != null && Integer.parseInt(httpStatus.toString()) > 100
                 && httpStatus < 200) {
                 // ignored
@@ -214,6 +220,8 @@ public class ClientStream extends AbstractStream implements Stream {
             transportError = validateHeaderStatus(headers);
 
             // todo support full payload compressor
+            // 从请求头中获取到解压器DeCompressor
+            // 不一定指定了解压器，请求体就一定是压缩的，有没有压缩还得看请求体中的压缩标志位
             CharSequence messageEncoding = headers.get(TripleHeaderEnum.GRPC_ENCODING.getHeader());
             if (null != messageEncoding) {
                 String compressorStr = messageEncoding.toString();
@@ -230,21 +238,24 @@ public class ClientStream extends AbstractStream implements Stream {
                 }
             }
 
-            // 接收到响应数据后
+
             TriDecoder.Listener listener = new TriDecoder.Listener() {
                 @Override
                 public void onRawMessage(byte[] data) {
+                    // 将解压之后的字节进行反序列得到对象
                     ClientStream.this.listener.onMessage(data);
                 }
 
-                // 响应流发送完毕
+                // 响应流发送完毕，将触发StreamObserver的onCompleted或onError方法
                 public void close() {
                     finishProcess(statusFromTrailers(trailers), trailers);
                 }
             };
 
-            // 接收到响应头后，就构造出解压器，后面收到响应数据时要解压
+            // 接收到响应头就构造一个deframer
+            // TriDecoder会判断响应体要不要解压，如果要解压就利用decompressor解压，并把解压结果回调listener中的onRawMessage方法
             deframer = new TriDecoder(decompressor, listener);
+            // onStart()方法中触发deframer来处理响应体数据
             ClientStream.this.listener.onStart();
         }
 
@@ -298,12 +309,15 @@ public class ClientStream extends AbstractStream implements Stream {
         @Override
         public void onHeader(Http2Headers headers, boolean endStream) {
             executor.execute(() -> {
+                // 标志响应头结束是通过发送一个Header帧来做的
                 if (endStream) {
                     if (!remoteClosed) {
                         writeQueue.enqueue(CancelQueueCommand.createCommand());
                     }
+                    // 会调用deframer的close方法，从而触发StreamObserver的onCompleted或onError方法
                     onTrailersReceived(headers);
                 } else {
+                    // 处理响应头
                     onHeaderReceived(headers);
                 }
             });
@@ -313,21 +327,28 @@ public class ClientStream extends AbstractStream implements Stream {
         @Override
         public void onData(ByteBuf data, boolean endStream) {
             executor.execute(() -> {
+
+                // transportError不等于null，表示处理响应头时就有问题了
                 if (transportError != null) {
                     transportError.appendDescription(
                         "Data:" + data.toString(StandardCharsets.UTF_8));
+                    // 释放内存空间
                     ReferenceCountUtil.release(data);
+                    //
                     if (transportError.description.length() > 512 || endStream) {
                         handleH2TransportError(transportError);
 
                     }
                     return;
                 }
+
                 if (!headerReceived) {
                     handleH2TransportError(TriRpcStatus.INTERNAL.withDescription(
                         "headers not received before payload"));
                     return;
                 }
+
+                // 接收到响应体数据后，把数据添加到accumulate中进行保存
                 deframer.deframe(data);
             });
         }
@@ -336,6 +357,7 @@ public class ClientStream extends AbstractStream implements Stream {
         public void cancelByRemote(TriRpcStatus status) {
             executor.execute(() -> {
                 transportError = status;
+                // 响应体数据发送完毕，服务端调用了onCompleted方法
                 finishProcess(status, null);
             });
         }

@@ -64,6 +64,7 @@ public class RequestMetadata {
             application);
         setIfNotNull(header, TripleHeaderEnum.GRPC_ACCEPT_ENCODING.getHeader(),
             acceptEncoding);
+
         if (!Identity.MESSAGE_ENCODING.equals(compressor.getMessageEncoding())) {
             setIfNotNull(header, TripleHeaderEnum.GRPC_ENCODING.getHeader(),
                 compressor.getMessageEncoding());
